@@ -12,8 +12,19 @@ export type Game = {
   subtitle: string;
   /** Version of each image that exists on the server; see gameImage. */
   images: Partial<Record<ImageKind, string>>;
+  /** The movie to play, if the game can be played; see gameSource. */
+  swf?: Swf;
   /** Stands in for the images of mock games, which have none. */
   tint?: string;
+};
+
+/** A game's movie, under /games/<id>/sources/. */
+export type Swf = {
+  file: string;
+  version: string;
+  /** Stage size in pixels, or 0 if the server could not read it. */
+  width: number;
+  height: number;
 };
 
 /** A home page row; games are in display order. */

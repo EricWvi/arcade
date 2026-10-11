@@ -17,10 +17,13 @@ config/            → /app/config
 └─ arcade.db       # 自动创建，位置由 database 决定（相对路径以 config.yaml 所在目录为准）
 games/             → /app/games（games_dir）
 └─ zmxy-1/         # 目录名是游戏 key，前端按 key 拼图片地址
-   └─ imgs/        # icon、card、poster、background 原图，以及 task images:placeholders 生成的 *.blur.webp
+   ├─ imgs/        # icon、card、poster、background 原图，以及 task images:placeholders 生成的 *.blur.webp
+   └─ sources/     # games.yaml 里 swf 指向的游戏文件，以及它自己加载的关卡等文件
 ```
 
-容器内的 `config.yaml` 应设置 `games_dir: "/app/games"`。前端通过 `GET /api/catalog` 拿到 games.yaml 里的分区和游戏（含磁盘上已有的图片种类），再按 key 请求 `GET /games/<key>/imgs/<name>`，都需要登录。
+容器内的 `config.yaml` 应设置 `games_dir: "/app/games"`。前端通过 `GET /api/catalog` 拿到 games.yaml 里的分区和游戏（含磁盘上已有的图片种类），再按 key 请求 `GET /games/<key>/imgs/<name>`；游戏文件走 `GET /games/<key>/sources/<path>`（只放行 swf、xml、图片、mp3 等类型，不能跳出 sources 目录）。这些都需要登录。
+
+游戏由用户浏览器里的 [Ruffle 扩展](https://chromewebstore.google.com/detail/donbcfbmhbcapadipfkeojnmajbakjdc)运行，没装扩展时游戏区域会提示安装。
 
 OIDC client secret 建议用环境变量 `ARCADE_OIDC_CLIENT_SECRET`。在 Authelia 注册回调地址 `<public_url>/auth/callback`。
 

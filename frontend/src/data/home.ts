@@ -1,4 +1,4 @@
-import type { Catalog, Game, ImageKind, Shelf } from "@/lib/api";
+import type { Catalog, Game, ImageKind, Shelf, Swf } from "@/lib/api";
 
 /**
  * URLs of a game image and of its blurred placeholder, by the game's key.
@@ -9,6 +9,16 @@ export const gameImage = (id: string, kind: ImageKind, version: string) => ({
   src: `/games/${id}/imgs/${kind}.png?v=${version}`,
   placeholder: `/games/${id}/imgs/${kind}.blur.webp?v=${version}`,
 });
+
+/**
+ * URL of a game's movie, and the base its own relative loads (levels and
+ * such) resolve against: the movie's directory.
+ */
+export const gameSource = (id: string, swf: Swf) => {
+  const dir = `/games/${id}/sources/`;
+  const file = swf.file.split("/").map(encodeURIComponent).join("/");
+  return { url: `${dir}${file}?v=${swf.version}`, base: dir + file.slice(0, file.lastIndexOf("/") + 1) };
+};
 
 /*
  * Mock data below stands in until it has a real source: recently played
