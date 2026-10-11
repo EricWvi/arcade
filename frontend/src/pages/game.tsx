@@ -14,6 +14,7 @@ import {
   ruffleDownloadsUrl,
   type RufflePlayer,
   setVolume,
+  shieldFromShortcuts,
   waitForRuffle,
 } from "@/lib/ruffle";
 import { type PlayTracker, trackPlay } from "@/lib/plays";
@@ -185,6 +186,7 @@ function Player({ game, swf, muted }: { game: Game; swf: Swf; muted: boolean }) 
     const el = ruffle.current.createPlayer();
     el.className = "absolute inset-0 size-full";
     host.current.append(el);
+    shieldFromShortcuts(el);
     player.current = el;
     loadMovie(el, {
       url,

@@ -36,3 +36,5 @@ packages/contracts/.test-dist/
 /memories
 config.yaml
 /games.yaml
+
+/drafts

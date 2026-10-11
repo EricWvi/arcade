@@ -54,6 +54,26 @@ export function waitForRuffle(timeout = 2000): Promise<Ruffle | null> {
 const handle = (player: RufflePlayer) =>
   typeof player.ruffle === "function" ? player.ruffle() : (player as unknown as RuffleHandle);
 
+type EditContextConstructor = new () => object;
+
+/**
+ * Keeps browser extensions' keyboard shortcuts out of the game. Extensions
+ * such as Global Speed (J slows video down) listen on the window before the
+ * page can, but skip keys typed into editable elements. An EditContext
+ * makes the player count as one without changing how it gets keys. Only
+ * Chromium has EditContext, and touch screens would open their keyboard,
+ * so elsewhere this does nothing.
+ */
+export function shieldFromShortcuts(player: RufflePlayer) {
+  const EditContext = (window as { EditContext?: EditContextConstructor }).EditContext;
+  if (!EditContext || !window.matchMedia("(pointer: fine)").matches) return;
+  try {
+    (player as RufflePlayer & { editContext: object }).editContext = new EditContext();
+  } catch (err) {
+    console.warn("shield player from shortcuts", err);
+  }
+}
+
 export const loadMovie = (player: RufflePlayer, options: RuffleLoadOptions) => handle(player).load(options);
 
 /** Sets the volume, 0 to 1. Ruffle ignores it until a movie is loaded. */
