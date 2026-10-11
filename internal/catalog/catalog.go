@@ -48,9 +48,30 @@ type Game struct {
 	// (<games_dir>/<key>/sources). Files it loads must sit in that
 	// directory too. Empty means the game cannot be played yet.
 	SWF string `yaml:"swf"`
+	// Saves says how the game keeps progress; see the Saves constants.
+	// Empty means SavesSharedObject.
+	Saves string `yaml:"saves"`
 	// Help tells players how to play, shown beside the game. Line breaks
 	// are kept.
 	Help string `yaml:"help"`
+}
+
+// How a game saves, as games.yaml's saves.
+const (
+	// SavesSharedObject games save to Flash SharedObjects, which Ruffle
+	// keeps in localStorage and the page syncs to the server.
+	SavesSharedObject = "shared-object"
+	// SavesFile games export and import save files (FileReference), like
+	// 造梦西游's SAV mod. The page stores those files on the server instead.
+	SavesFile = "file"
+)
+
+// SavesMode returns how g saves, filling in the default.
+func (g Game) SavesMode() string {
+	if g.Saves == "" {
+		return SavesSharedObject
+	}
+	return g.Saves
 }
 
 // Load reads and checks the catalogue at path. A missing file returns an
@@ -83,6 +104,9 @@ func (c Catalog) validate() error {
 		}
 		if g.SWF != "" && (!filepath.IsLocal(g.SWF) || filepath.Ext(g.SWF) != ".swf" || strings.ContainsRune(g.SWF, '\\')) {
 			return fmt.Errorf("game %q: swf %q must be a .swf path inside the sources directory", key, g.SWF)
+		}
+		if g.Saves != "" && g.Saves != SavesSharedObject && g.Saves != SavesFile {
+			return fmt.Errorf("game %q: saves must be %q or %q", key, SavesSharedObject, SavesFile)
 		}
 	}
 	shelves := map[string]bool{}

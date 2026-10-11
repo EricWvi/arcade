@@ -6,21 +6,30 @@ import (
 	"time"
 )
 
-// Saves returns a user's saved data for a game, by save name.
-func (s *Store) Saves(ctx context.Context, userID int64, game string) (map[string]string, error) {
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT name, data FROM saves WHERE user_id = ? AND game = ?`, userID, game)
+// Save is one of a user's saves for a game.
+type Save struct {
+	Name string
+	Data string
+	// UpdatedAt is unix seconds.
+	UpdatedAt int64
+}
+
+// Saves returns a user's saves for a game, most recently written first.
+func (s *Store) Saves(ctx context.Context, userID int64, game string) ([]Save, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT name, data, updated_at FROM saves WHERE user_id = ? AND game = ?
+		ORDER BY updated_at DESC, name`, userID, game)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	saves := map[string]string{}
+	var saves []Save
 	for rows.Next() {
-		var name, data string
-		if err := rows.Scan(&name, &data); err != nil {
+		var sv Save
+		if err := rows.Scan(&sv.Name, &sv.Data, &sv.UpdatedAt); err != nil {
 			return nil, err
 		}
-		saves[name] = data
+		saves = append(saves, sv)
 	}
 	return saves, rows.Err()
 }

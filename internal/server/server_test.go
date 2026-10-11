@@ -66,7 +66,7 @@ func newServerWith(t *testing.T, cfg auth.Config) (http.Handler, string) {
 			{ID: "nitrome", Title: "Nitrome", Games: []string{"hot-air-1"}},
 		},
 		Games: map[string]catalog.Game{
-			"zmxy-1":    {Title: "造梦西游", Subtitle: "动作冒险", SWF: "game.swf", Help: "  方向键移动\n"},
+			"zmxy-1":    {Title: "造梦西游", Subtitle: "动作冒险", SWF: "game.swf", Saves: "file", Help: "  方向键移动\n"},
 			"hot-air-1": {Title: "Hot Air", SWF: "missing.swf"},
 		},
 	}
@@ -205,10 +205,10 @@ func TestCatalogKeepsOrderAndListsImagesOnDisk(t *testing.T) {
 	want := catalogResponse{Shelves: []catalogShelf{
 		{ID: "zmxy", Title: "造梦西游系列", Games: []catalogGame{
 			{ID: "zmxy-1", Title: "造梦西游", Subtitle: "动作冒险", Images: map[string]string{"card": version}, Help: "方向键移动",
-				SWF: &catalogSWF{File: "game.swf", Version: got.Shelves[0].Games[0].SWF.Version, Width: 550, Height: 400}},
+				SWF: &catalogSWF{File: "game.swf", Version: got.Shelves[0].Games[0].SWF.Version, Width: 550, Height: 400}, Saves: "file"},
 		}},
 		{ID: "nitrome", Title: "Nitrome", Games: []catalogGame{
-			{ID: "hot-air-1", Title: "Hot Air", Images: map[string]string{}},
+			{ID: "hot-air-1", Title: "Hot Air", Images: map[string]string{}, Saves: "shared-object"},
 		}},
 	}}
 	if !reflect.DeepEqual(got, want) {
@@ -236,17 +236,17 @@ func TestSaves(t *testing.T) {
 		h.ServeHTTP(rec, httptest.NewRequest("PUT", path, strings.NewReader(body)))
 		return rec
 	}
-	saves := func() map[string]map[string]string {
+	saves := func() savesResponse {
 		t.Helper()
 		rec := do(h, "GET", "/api/games/zmxy-1/saves")
-		var got map[string]map[string]string
+		var got savesResponse
 		if rec.Code != 200 || json.Unmarshal(rec.Body.Bytes(), &got) != nil {
 			t.Fatalf("saves: %d %s", rec.Code, rec.Body)
 		}
 		return got
 	}
-	if got := saves(); !reflect.DeepEqual(got, map[string]map[string]string{"saves": {}}) {
-		t.Fatalf("empty saves = %v", got)
+	if got := saves(); len(got.Saves) != 0 || got.Updated == nil {
+		t.Fatalf("empty saves = %+v", got)
 	}
 	if rec := put("/api/games/zmxy-1/saves", `{"saves":{"levels":"AL8A","stars":"AL8B"}}`); rec.Code != 204 {
 		t.Fatalf("put: %d %s", rec.Code, rec.Body)
@@ -254,8 +254,8 @@ func TestSaves(t *testing.T) {
 	if rec := put("/api/games/zmxy-1/saves", `{"saves":{"stars":null,"levels":"AL8C"}}`); rec.Code != 204 {
 		t.Fatalf("put with delete: %d %s", rec.Code, rec.Body)
 	}
-	if got := saves()["saves"]; !reflect.DeepEqual(got, map[string]string{"levels": "AL8C"}) {
-		t.Fatalf("saves = %v", got)
+	if got := saves(); !reflect.DeepEqual(got.Saves, map[string]string{"levels": "AL8C"}) || got.Updated["levels"] == 0 {
+		t.Fatalf("saves = %+v", got)
 	}
 
 	for body, code := range map[string]int{

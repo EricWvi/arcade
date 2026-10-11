@@ -25,6 +25,13 @@ type savesBody struct {
 	Saves map[string]*string `json:"saves"`
 }
 
+type savesResponse struct {
+	// Saves maps a save name to its data.
+	Saves map[string]string `json:"saves"`
+	// Updated maps a save name to when it was last written, in unix ms.
+	Updated map[string]int64 `json:"updated"`
+}
+
 // getSaves returns the signed-in user's saves for a game.
 func (s *server) getSaves(w http.ResponseWriter, r *http.Request) {
 	key, ok := s.gameKey(w, r)
@@ -37,8 +44,13 @@ func (s *server) getSaves(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "读取存档失败")
 		return
 	}
+	res := savesResponse{Saves: map[string]string{}, Updated: map[string]int64{}}
+	for _, sv := range saves {
+		res.Saves[sv.Name] = sv.Data
+		res.Updated[sv.Name] = sv.UpdatedAt * 1000
+	}
 	w.Header().Set("Cache-Control", "no-store")
-	writeJSON(w, http.StatusOK, map[string]map[string]string{"saves": saves})
+	writeJSON(w, http.StatusOK, res)
 }
 
 // putSaves writes the saves named in the body and leaves the rest alone.

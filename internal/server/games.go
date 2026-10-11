@@ -42,6 +42,8 @@ type catalogGame struct {
 	Images map[string]string `json:"images"`
 	// SWF is the movie to play, if games.yaml names one and it exists.
 	SWF *catalogSWF `json:"swf,omitempty"`
+	// Saves is how the game saves: "shared-object" or "file".
+	Saves string `json:"saves"`
 	// Help is how to play, from games.yaml; empty if not given.
 	Help string `json:"help,omitempty"`
 }
@@ -73,7 +75,7 @@ func (s *server) getCatalog(w http.ResponseWriter, r *http.Request) {
 // catalogGame describes a game listed in games.yaml.
 func (s *server) catalogGame(key string) catalogGame {
 	g := s.opts.Catalog.Games[key]
-	return catalogGame{ID: key, Title: g.Title, Subtitle: g.Subtitle, Images: s.images(key), SWF: s.swf(key, g.SWF), Help: strings.TrimSpace(g.Help)}
+	return catalogGame{ID: key, Title: g.Title, Subtitle: g.Subtitle, Images: s.images(key), SWF: s.swf(key, g.SWF), Saves: g.SavesMode(), Help: strings.TrimSpace(g.Help)}
 }
 
 // images finds a game's images. A version changes whenever the image or its

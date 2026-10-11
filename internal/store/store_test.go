@@ -103,11 +103,21 @@ func TestSavesArePerUserAndGame(t *testing.T) {
 	if err := s.PutSaves(ctx, alice.ID, "hot-air-1", map[string]*string{"levels": str("3"), "stars": nil, "time": str("4")}); err != nil {
 		t.Fatal(err)
 	}
+	data := func(saves []Save) map[string]string {
+		m := map[string]string{}
+		for _, sv := range saves {
+			if sv.UpdatedAt == 0 {
+				t.Errorf("save %q has no update time", sv.Name)
+			}
+			m[sv.Name] = sv.Data
+		}
+		return m
+	}
 	got, err := s.Saves(ctx, alice.ID, "hot-air-1")
-	if err != nil || !reflect.DeepEqual(got, map[string]string{"levels": "3", "time": "4"}) {
+	if err != nil || !reflect.DeepEqual(data(got), map[string]string{"levels": "3", "time": "4"}) {
 		t.Fatalf("alice = %v, %v", got, err)
 	}
-	if got, _ := s.Saves(ctx, bob.ID, "hot-air-1"); !reflect.DeepEqual(got, map[string]string{"levels": "bob"}) {
+	if got, _ := s.Saves(ctx, bob.ID, "hot-air-1"); !reflect.DeepEqual(data(got), map[string]string{"levels": "bob"}) {
 		t.Fatalf("bob = %v", got)
 	}
 	if got, _ := s.Saves(ctx, alice.ID, "zmxy-1"); len(got) != 0 {
