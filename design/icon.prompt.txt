@@ -1,0 +1,19 @@
+Create a game icon for a classic Flash game hosted on "Arcade", a website styled like the Apple App Store web version. The icon is shown at about 128×128 px next to the game's title in store listings, so it must read clearly at small sizes.
+
+Canvas and shape:
+- Square, 1:1 aspect ratio, 1024×1024 px.
+- The artwork fills the entire canvas edge to edge (full bleed), with four sharp 90-degree corners.
+- Do NOT round the corners, do NOT draw a rounded-square or circular icon mask, no border, no frame, no drop shadow, no transparent or white margins. The website applies its own corner rounding.
+
+Composition:
+- One clear focal subject: the game's main character, mascot or most iconic object, large and centered, filling about 70–85% of the canvas.
+- Simple, uncluttered background (a solid color, a soft gradient or a lightly textured scene) that contrasts strongly with the subject.
+- Bold silhouette, strong shapes, high contrast, saturated but harmonious colors, so it stays recognisable when shrunk to 64 px.
+- No text, no letters, no logo wordmark, no numbers, no UI elements, no watermark.
+
+Style:
+- Polished, premium mobile-game icon quality, like a top App Store game icon.
+- Faithful to the original game's art style, characters and color palette (pixel art stays pixel art, cartoon stays cartoon), refined and re-rendered at high resolution.
+- Must look good on both white (#ffffff) and near-black (#1c1c1e) page backgrounds.
+
+The game:

@@ -1,0 +1,24 @@
+Create a full-screen background image for the play page of a classic Flash game hosted on "Arcade", a website styled like the Apple App Store web version. The image fills the whole browser window behind the page; the website places the game player in the middle and a title bar and side panels around it, so most of the center will be covered. Think of it as the themed wallpaper of a room or world from the game, framing the player like a stage.
+
+Canvas and shape:
+- Landscape, 16:9 aspect ratio, 2560×1440 px (if that size is unavailable, render 1536×1024 and keep all important content away from the top and bottom edges so it can be cropped to 16:9).
+- The artwork fills the entire canvas edge to edge (full bleed), with four sharp 90-degree corners.
+- No border, no frame, no letterboxing, no white or transparent margins.
+
+No shadows (the website adds all shadows itself):
+- Do NOT add drop shadows, inner shadows, vignettes, darkened edges or corners, or any dark overlay.
+- Do NOT draw a panel, window, card, screen or empty frame in the center, and do NOT darken or shade the center to make room for one.
+- Use soft, even, flat lighting across the whole image; objects may have their own light shading, but no strong cast shadows and no dramatic spotlight.
+
+Composition (safe areas for website overlays):
+- The central area (about 60% of width × 80% of height) will be hidden behind the game player. Fill it with a calm, low-detail, continuous backdrop that belongs to the scene (a wall, sky, wallpaper pattern or distant scenery), with no characters, faces, text or focal objects.
+- Place the game's characters, props and iconic objects along the left and right edges and along the top, partly cropped by the canvas edges, like decorations around a stage.
+- The image must still look complete when cropped to a 21:9 ultra-wide or a 4:3 window: no important element may depend on the corners.
+- Even density across the frame; nothing should pull the eye away from the center.
+
+Style:
+- Faithful to the original game's art style, characters, world and color palette (pixel art stays pixel art, cartoon stays cartoon), refined and re-rendered at high resolution.
+- Slightly muted, lower contrast and lower saturation than promotional key art, unified by one dominant hue from the game's palette, so the game player in front stays the brightest and most readable element.
+- No text, no logo, no title, no letters, no UI, no HUD, no watermark.
+
+The game:

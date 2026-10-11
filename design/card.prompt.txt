@@ -1,0 +1,20 @@
+Create a card cover image for a classic Flash game hosted on "Arcade", a website styled like the Apple App Store web version. The cover is the large landscape thumbnail at the top of a game card in a horizontal category shelf, displayed at about 655×410 px, with the game icon, title, subtitle and a button rendered by the website below it.
+
+Canvas and shape:
+- Landscape, 16:10 aspect ratio, 1600×1000 px (if that size is unavailable, render 1536×960).
+- The artwork fills the entire canvas edge to edge (full bleed), with four sharp 90-degree corners.
+- Do NOT round the corners, no border, no frame, no drop shadow, no letterboxing, no white or transparent margins. The website applies its own corner rounding.
+
+Composition:
+- A vivid key-art scene that shows what playing the game feels like: the main character(s) in action within a recognisable environment from the game.
+- Keep the main subject within the central 80% of the canvas; important details must not touch the edges.
+- Keep the bottom-right corner (about 25% of width × 20% of height) visually calm, because the website may overlay small round video controls there.
+- Clear depth with foreground, subject and background; dynamic but readable at thumbnail size.
+- The game's logo or title may appear once as a stylised wordmark in the upper or central area, integrated into the art; no other text, no UI, no HUD, no buttons, no watermark.
+
+Style:
+- Polished, premium promotional key art, like a featured game banner on the App Store.
+- Faithful to the original game's art style, characters and color palette (pixel art stays pixel art, cartoon stays cartoon), refined and re-rendered at high resolution with rich lighting.
+- Bright, saturated, inviting; must look good on both white (#ffffff) and near-black (#1c1c1e) page backgrounds.
+
+The game:

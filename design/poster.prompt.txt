@@ -1,0 +1,21 @@
+Create a large rectangular poster for a classic Flash game hosted on "Arcade", a website styled like the Apple App Store web version. The poster is the full-width background of the "Recently played" hero banner at the top of the homepage (about 1380×480 px on a desktop screen, wider on large screens). When the visitor hovers a game in that banner, the background switches to this poster, and the website overlays white text in the top-left area and a row of small square game tiles along the bottom.
+
+Canvas and shape:
+- Ultra-wide landscape, 21:9 aspect ratio, 2560×1097 px (if that size is unavailable, render 1536×1024 and keep all important content within the central horizontal band so it can be cropped to 21:9).
+- The artwork fills the entire canvas edge to edge (full bleed), with four sharp 90-degree corners.
+- Do NOT round the corners, no border, no frame, no vignette frame, no letterboxing, no white or transparent margins. The website applies its own corner rounding.
+
+Composition (safe areas for website overlays):
+- Place the main character(s) and focal action in the right half to right two-thirds of the canvas.
+- Keep the top-left area (about 45% of width × 50% of height) relatively calm and mid-to-dark in tone, such as sky, mist or soft background scenery, so overlaid white headline text stays readable.
+- Keep the bottom 30% of the canvas low in detail and darker, because a dark gradient and a row of game tiles will be overlaid there.
+- The image must still work when the left and right edges are cropped by about 10% each on narrower screens.
+- Cinematic, epic, wide establishing shot with strong depth and dramatic lighting.
+- No text, no logo, no title, no letters, no UI, no HUD, no watermark.
+
+Style:
+- Premium cinematic key art, like a featured hero banner on the App Store or a game's launch poster.
+- Faithful to the original game's art style, characters, world and color palette (pixel art stays pixel art, cartoon stays cartoon), refined and re-rendered at high resolution.
+- Rich, saturated colors with atmospheric lighting.
+
+The game:
