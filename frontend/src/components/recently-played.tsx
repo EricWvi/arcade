@@ -16,10 +16,11 @@ export function RecentlyPlayed({ games }: { games: Game[] }) {
       style={active ? { backgroundColor: active.tint } : undefined}
       onMouseLeave={() => setActive(null)}
     >
+      {/* Posters keep their subject on the right, so narrow screens crop from the left. */}
       <img
         src={defaultPoster}
         alt=""
-        className="absolute inset-0 -z-20 size-full object-cover transition-opacity duration-500"
+        className="absolute inset-0 -z-20 size-full object-cover object-[75%_center] transition-opacity duration-500"
         style={{ opacity: active ? 0 : 1 }}
       />
       {/*
