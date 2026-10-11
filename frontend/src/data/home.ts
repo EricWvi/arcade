@@ -1,14 +1,24 @@
 /**
- * Placeholder catalogue for the home page until games come from the API.
- * Every image is a solid colour for now: `tint` stands in for the game's
- * icon, card cover and poster.
+ * The home page catalogue. The site is static: a game's id is its key, and
+ * its images are requested by that key (see gameImage). Games without
+ * `art` have no images yet, so `tint` stands in for them.
  */
 export type Game = {
   id: string;
   title: string;
   subtitle: string;
   tint: string;
+  /** Images exist under games/<id>/imgs. */
+  art?: boolean;
 };
+
+export type ImageKind = "icon" | "card" | "poster" | "background";
+
+/** URLs of a game image and of its blurred placeholder. */
+export const gameImage = (id: string, kind: ImageKind) => ({
+  src: `/games/${id}/imgs/${kind}.png`,
+  placeholder: `/games/${id}/imgs/${kind}.blur.webp`,
+});
 
 export type Shelf = {
   id: string;
@@ -16,7 +26,13 @@ export type Shelf = {
   games: Game[];
 };
 
-const game = (id: string, title: string, subtitle: string, tint: string): Game => ({ id, title, subtitle, tint });
+const game = (id: string, title: string, subtitle: string, tint: string, art = false): Game => ({
+  id,
+  title,
+  subtitle,
+  tint,
+  art,
+});
 
 export const recentlyPlayed: Game[] = [
   game("pixel-island", "像素冒险岛", "动作冒险", "#4f8a3c"),
@@ -31,24 +47,12 @@ export const shelves: Shelf[] = [
   {
     id: "nitrome",
     title: "Nitrome",
-    games: [
-      game("ice-kid", "冰块小子", "平台跳跃", "#e889b5"),
-      game("double-mission", "双重任务", "解谜闯关", "#4aa3a2"),
-      game("sky-dash", "天空冲刺", "动作冒险", "#7a5cc7"),
-      game("mech-maze", "机械迷城", "平台跳跃", "#3d6fb6"),
-      game("chameleon", "变色龙大冒险", "动作闯关", "#3f9b57"),
-    ],
+    games: [game("hot-air-1", "Hot Air", "休闲闯关", "#4aa3d6", true)],
   },
   {
     id: "zmxy",
     title: "造梦西游系列",
-    games: [
-      game("zmxy-1", "造梦西游", "动作冒险", "#c8862f"),
-      game("zmxy-2", "造梦西游2", "动作冒险", "#b85a2b"),
-      game("zmxy-3", "造梦西游3", "动作冒险", "#a3352b"),
-      game("zmxy-4", "造梦西游4", "动作冒险", "#5d8fc4"),
-      game("zmxy-5", "造梦西游5", "动作冒险", "#d4a03a"),
-    ],
+    games: [game("zmxy-1", "造梦西游", "动作冒险", "#a3352b", true)],
   },
   {
     id: "classics",

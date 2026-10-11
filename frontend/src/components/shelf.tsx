@@ -1,6 +1,7 @@
 import { ChevronRight } from "lucide-react";
 
-import type { Game, Shelf as ShelfData } from "@/data/home";
+import { BlurImage } from "@/components/blur-image";
+import { gameImage, type Game, type ImageKind, type Shelf as ShelfData } from "@/data/home";
 
 /** A category row of game cards that scrolls sideways, three cards per view on desktop. */
 export function Shelf({ shelf }: { shelf: ShelfData }) {
@@ -27,14 +28,21 @@ export function Shelf({ shelf }: { shelf: ShelfData }) {
 function GameCard({ game }: { game: Game }) {
   return (
     <article>
-      {/* Card cover placeholder, 16:10. */}
-      <a href={`/games/${game.id}`} className="block aspect-[16/10] rounded-2xl" style={{ backgroundColor: game.tint }} aria-label={game.title} />
+      <a
+        href={`/games/${game.id}`}
+        className="relative block aspect-[16/10] overflow-hidden rounded-2xl"
+        style={{ backgroundColor: game.tint }}
+        aria-label={game.title}
+      >
+        <Art game={game} kind="card" />
+      </a>
       <div className="mt-4 flex items-center gap-4">
-        {/* Icon placeholder. */}
         <span
-          className="size-16 shrink-0 rounded-2xl"
+          className="relative size-16 shrink-0 overflow-hidden rounded-2xl"
           style={{ backgroundColor: `color-mix(in srgb, ${game.tint} 75%, black)` }}
-        />
+        >
+          <Art game={game} kind="icon" />
+        </span>
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-lg font-semibold">{game.title}</h3>
           <p className="truncate text-sm text-muted">{game.subtitle}</p>
@@ -45,4 +53,11 @@ function GameCard({ game }: { game: Game }) {
       </div>
     </article>
   );
+}
+
+/** Fills its positioned parent with the game's image; games without art keep the parent's tint. */
+function Art({ game, kind }: { game: Game; kind: ImageKind }) {
+  if (!game.art) return null;
+  const { src, placeholder } = gameImage(game.id, kind);
+  return <BlurImage src={src} placeholder={placeholder} alt="" className="absolute inset-0" />;
 }
