@@ -1,6 +1,7 @@
 import { LogOut, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import logo from "@/assets/logo.png";
 import type { User } from "@/lib/api";
 
 export function SiteHeader({ user, onSignOut }: { user?: User; onSignOut: () => Promise<void> }) {
@@ -8,7 +9,7 @@ export function SiteHeader({ user, onSignOut }: { user?: User; onSignOut: () => 
     <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
         <a href="/" className="mr-auto flex items-center gap-2.5">
-          <img src="/logo.png" alt="" className="size-8" />
+          <img src={logo} alt="" className="size-8" />
           <span className="text-lg font-semibold tracking-tight">Arcade</span>
         </a>
         <label className="flex h-8 w-40 items-center gap-2 rounded-full bg-surface px-3 text-sm text-muted sm:w-64">
