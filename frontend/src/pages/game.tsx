@@ -76,7 +76,10 @@ function Playfield({ game, more }: { game: Game; more: Game[] }) {
           <Stage ref={stage} game={game} muted={muted} />
         </section>
 
-        <MoreGames games={more} />
+        <div className="space-y-6">
+          <MoreGames games={more} />
+          {game.help && <Help text={game.help} />}
+        </div>
       </div>
     </main>
   );
@@ -311,6 +314,15 @@ function ChromeLogo({ className }: { className?: string }) {
       <circle cx="24" cy="24" r="10" fill="#fff" />
       <circle cx="24" cy="24" r="8" fill="#1a73e8" />
     </svg>
+  );
+}
+
+function Help({ text }: { text: string }) {
+  return (
+    <section className="rounded-3xl bg-background/90 p-4 shadow-2xl ring-1 ring-black/5 backdrop-blur-xl dark:ring-white/10">
+      <h2 className="px-2 pb-2 text-lg font-bold tracking-tight">玩法说明</h2>
+      <p className="px-2 pb-2 text-sm leading-relaxed whitespace-pre-line text-muted">{text}</p>
+    </section>
   );
 }
 

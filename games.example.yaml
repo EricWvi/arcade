@@ -15,11 +15,14 @@ shelves:
 # <kind>.blur.webp placeholder from `task images:placeholders`. `swf` is the
 # movie to play, relative to <games_dir>/<key>/sources; files it loads, such
 # as levels, sit beside it. Players need the Ruffle browser extension.
+# `help` says how to play and is shown beside the game; line breaks are kept.
 games:
   hot-air-1:
     title: Hot Air
     subtitle: 休闲闯关
     swf: Hot_Air.swf
+    help: |
+      用鼠标指针在屏幕上移动风扇。
   zmxy-1:
     title: 造梦西游
     subtitle: 动作冒险

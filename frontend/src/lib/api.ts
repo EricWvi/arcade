@@ -14,6 +14,8 @@ export type Game = {
   images: Partial<Record<ImageKind, string>>;
   /** The movie to play, if the game can be played; see gameSource. */
   swf?: Swf;
+  /** How to play, from games.yaml; line breaks matter. */
+  help?: string;
   /** Stands in for the images of mock games, which have none. */
   tint?: string;
 };

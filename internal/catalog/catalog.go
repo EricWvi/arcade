@@ -48,6 +48,9 @@ type Game struct {
 	// (<games_dir>/<key>/sources). Files it loads must sit in that
 	// directory too. Empty means the game cannot be played yet.
 	SWF string `yaml:"swf"`
+	// Help tells players how to play, shown beside the game. Line breaks
+	// are kept.
+	Help string `yaml:"help"`
 }
 
 // Load reads and checks the catalogue at path. A missing file returns an
