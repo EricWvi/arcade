@@ -1,37 +1,23 @@
-/**
- * The home page catalogue. The site is static: a game's id is its key, and
- * its images are requested by that key (see gameImage). Games without
- * `art` have no images yet, so `tint` stands in for them.
- */
-export type Game = {
-  id: string;
-  title: string;
-  subtitle: string;
-  tint: string;
-  /** Images exist under games/<id>/imgs. */
-  art?: boolean;
-};
+import type { Game, ImageKind, Shelf } from "@/lib/api";
 
-export type ImageKind = "icon" | "card" | "poster" | "background";
-
-/** URLs of a game image and of its blurred placeholder. */
+/** URLs of a game image and of its blurred placeholder, by the game's key. */
 export const gameImage = (id: string, kind: ImageKind) => ({
   src: `/games/${id}/imgs/${kind}.png`,
   placeholder: `/games/${id}/imgs/${kind}.blur.webp`,
 });
 
-export type Shelf = {
-  id: string;
-  title: string;
-  games: Game[];
-};
-
-const game = (id: string, title: string, subtitle: string, tint: string, art = false): Game => ({
+/*
+ * Mock data below stands in until it has a real source: recently played
+ * will come from each user's history, and these shelves will move to
+ * games.yaml once their games exist. Mock games have no images; `tint`
+ * stands in for them.
+ */
+const game = (id: string, title: string, subtitle: string, tint: string): Game => ({
   id,
   title,
   subtitle,
   tint,
-  art,
+  images: [],
 });
 
 export const recentlyPlayed: Game[] = [
@@ -43,17 +29,8 @@ export const recentlyPlayed: Game[] = [
   game("megaman-x", "洛克人X", "动作射击", "#2c7fc9"),
 ];
 
-export const shelves: Shelf[] = [
-  {
-    id: "nitrome",
-    title: "Nitrome",
-    games: [game("hot-air-1", "Hot Air", "休闲闯关", "#4aa3d6", true)],
-  },
-  {
-    id: "zmxy",
-    title: "造梦西游系列",
-    games: [game("zmxy-1", "造梦西游", "动作冒险", "#a3352b", true)],
-  },
+/** Shown after the shelves from games.yaml. */
+export const mockShelves: Shelf[] = [
   {
     id: "classics",
     title: "经典合集",

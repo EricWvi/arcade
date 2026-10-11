@@ -4,7 +4,7 @@ import { useState } from "react";
 import defaultPosterBlur from "@/assets/default-poster.blur.webp?inline";
 import defaultPoster from "@/assets/default-poster.webp";
 import { BlurImage } from "@/components/blur-image";
-import type { Game } from "@/data/home";
+import type { Game } from "@/lib/api";
 
 /**
  * The hero banner. Its background is the site poster until a game is

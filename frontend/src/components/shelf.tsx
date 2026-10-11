@@ -1,7 +1,8 @@
 import { ChevronRight } from "lucide-react";
 
 import { BlurImage } from "@/components/blur-image";
-import { gameImage, type Game, type ImageKind, type Shelf as ShelfData } from "@/data/home";
+import { gameImage } from "@/data/home";
+import type { Game, ImageKind, Shelf as ShelfData } from "@/lib/api";
 
 /** A category row of game cards that scrolls sideways, three cards per view on desktop. */
 export function Shelf({ shelf }: { shelf: ShelfData }) {
@@ -31,7 +32,7 @@ function GameCard({ game }: { game: Game }) {
       <a
         href={`/games/${game.id}`}
         className="relative block aspect-[16/10] overflow-hidden rounded-2xl"
-        style={{ backgroundColor: game.tint }}
+        style={{ backgroundColor: game.tint ?? "var(--surface)" }}
         aria-label={game.title}
       >
         <Art game={game} kind="card" />
@@ -39,7 +40,7 @@ function GameCard({ game }: { game: Game }) {
       <div className="mt-4 flex items-center gap-4">
         <span
           className="relative size-16 shrink-0 overflow-hidden rounded-2xl"
-          style={{ backgroundColor: `color-mix(in srgb, ${game.tint} 75%, black)` }}
+          style={{ backgroundColor: game.tint ? `color-mix(in srgb, ${game.tint} 75%, black)` : "var(--surface)" }}
         >
           <Art game={game} kind="icon" />
         </span>
@@ -55,9 +56,9 @@ function GameCard({ game }: { game: Game }) {
   );
 }
 
-/** Fills its positioned parent with the game's image; games without art keep the parent's tint. */
+/** Fills its positioned parent with the game's image, if it has one; otherwise the parent's colour shows. */
 function Art({ game, kind }: { game: Game; kind: ImageKind }) {
-  if (!game.art) return null;
+  if (!game.images.includes(kind)) return null;
   const { src, placeholder } = gameImage(game.id, kind);
   return <BlurImage src={src} placeholder={placeholder} alt="" className="absolute inset-0" />;
 }

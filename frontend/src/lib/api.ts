@@ -3,6 +3,31 @@ export type User = {
   email: string;
 };
 
+export type ImageKind = "icon" | "card" | "poster" | "background";
+
+/** A game. Its id is its key: the directory under games_dir that holds its images. */
+export type Game = {
+  id: string;
+  title: string;
+  subtitle: string;
+  /** Image kinds that exist on the server; see gameImage. */
+  images: ImageKind[];
+  /** Stands in for the images of mock games, which have none. */
+  tint?: string;
+};
+
+/** A home page row; games are in display order. */
+export type Shelf = {
+  id: string;
+  title: string;
+  games: Game[];
+};
+
+/** games.yaml as the home page needs it; shelves are in display order. */
+export type Catalog = {
+  shelves: Shelf[];
+};
+
 export class ApiError extends Error {
   readonly status: number;
   constructor(status: number, message: string) {
@@ -34,6 +59,7 @@ async function request<T>(method: string, path: string): Promise<T> {
 
 export const api = {
   me: () => request<User>("GET", "/api/me"),
+  catalog: () => request<Catalog>("GET", "/api/catalog"),
 };
 
 /** Ends this browser's session on the server. */
