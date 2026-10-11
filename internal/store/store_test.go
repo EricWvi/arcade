@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func openTest(t *testing.T) *Store {
@@ -181,5 +182,41 @@ func TestRecordPlayKeepsRunningTotals(t *testing.T) {
 	}
 	if recent, _ := s.RecentGames(ctx, bob.ID, 10); len(recent) != 0 {
 		t.Fatalf("bob recent = %+v", recent)
+	}
+}
+
+func TestRecordPlayGrowsPastTheFirstReportCap(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	u, _ := s.UpsertUser(ctx, Identity{Issuer: "i", Subject: "alice"})
+	if err := s.RecordPlay(ctx, u.ID, Play{ID: "p", Game: "zmxy-1"}); err != nil {
+		t.Fatal(err)
+	}
+	// The play started ten minutes ago; five minutes of it were active, two
+	// of them in full screen.
+	tenMinutes := int64(10 * time.Minute / time.Millisecond)
+	if _, err := s.db.Exec(`UPDATE plays SET started_at = started_at - ?, ended_at = ended_at - ?`, tenMinutes, tenMinutes); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RecordPlay(ctx, u.ID, Play{ID: "p", Game: "zmxy-1", ActiveMS: 300_000, FullscreenMS: 120_000}); err != nil {
+		t.Fatal(err)
+	}
+	var started, ended, active, fullscreen int64
+	if err := s.db.QueryRow(`SELECT started_at, ended_at, active_ms, fullscreen_ms FROM plays`).Scan(&started, &ended, &active, &fullscreen); err != nil {
+		t.Fatal(err)
+	}
+	if active != 300_000 || fullscreen != 120_000 {
+		t.Fatalf("active %d, fullscreen %d; want 300000, 120000", active, fullscreen)
+	}
+	if ended-started < tenMinutes {
+		t.Fatalf("ended %d ms after the start, want the time of the last report", ended-started)
+	}
+	// Still capped by the time since the start.
+	if err := s.RecordPlay(ctx, u.ID, Play{ID: "p", Game: "zmxy-1", ActiveMS: 3_600_000}); err != nil {
+		t.Fatal(err)
+	}
+	s.db.QueryRow(`SELECT active_ms FROM plays`).Scan(&active)
+	if active > tenMinutes+activeSlack+1000 {
+		t.Fatalf("active %d ms, more than the time since the start", active)
 	}
 }

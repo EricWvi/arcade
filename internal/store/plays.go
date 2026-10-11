@@ -34,6 +34,9 @@ const activeSlack = int64(time.Minute / time.Millisecond)
 // is capped by the time since the start, so a page cannot claim more. A
 // play belongs to one user and game: reusing its id for another returns
 // ErrNotFound.
+//
+// The update reads the reported values from the parameters, not excluded.*:
+// those are the insert's values, already capped for a first report.
 func (s *Store) RecordPlay(ctx context.Context, userID int64, p Play) error {
 	now := time.Now().UnixMilli()
 	res, err := s.db.ExecContext(ctx, `
@@ -41,9 +44,9 @@ func (s *Store) RecordPlay(ctx context.Context, userID int64, p Play) error {
 			keys, clicks, save_writes, muted, timezone, viewport, user_agent)
 		VALUES (?1, ?2, ?3, ?4, ?4, MIN(?5, ?13), MIN(?6, ?5, ?13), ?7, ?8, ?9, ?10, ?11, ?12, ?14)
 		ON CONFLICT (id) DO UPDATE SET
-			active_ms     = MAX(active_ms, MIN(excluded.active_ms, ?4 - started_at + ?13)),
-			ended_at      = CASE WHEN MIN(excluded.active_ms, ?4 - started_at + ?13) > active_ms THEN ?4 ELSE ended_at END,
-			fullscreen_ms = MAX(fullscreen_ms, MIN(excluded.fullscreen_ms, excluded.active_ms, ?4 - started_at + ?13)),
+			active_ms     = MAX(active_ms, MIN(?5, ?4 - started_at + ?13)),
+			ended_at      = CASE WHEN MIN(?5, ?4 - started_at + ?13) > active_ms THEN ?4 ELSE ended_at END,
+			fullscreen_ms = MAX(fullscreen_ms, MIN(?6, ?5, ?4 - started_at + ?13)),
 			keys          = MAX(keys, excluded.keys),
 			clicks        = MAX(clicks, excluded.clicks),
 			save_writes   = MAX(save_writes, excluded.save_writes),
