@@ -29,7 +29,7 @@ games:
   zmxy-1:
     title: 造梦西游
     subtitle: 动作冒险
-    swf: 打开我开始玩.swf
+    swf: zmxy_1.swf
     saves: file
     help: |
       A / D 移动，J 攻击，K 跳跃，U / I / O / L / 空格 释放技能。
