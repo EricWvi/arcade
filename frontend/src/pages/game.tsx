@@ -319,9 +319,9 @@ function ChromeLogo({ className }: { className?: string }) {
 
 function Help({ text }: { text: string }) {
   return (
-    <section className="rounded-3xl bg-background/90 p-4 shadow-2xl ring-1 ring-black/5 backdrop-blur-xl dark:ring-white/10">
-      <h2 className="px-2 pb-2 text-lg font-bold tracking-tight">玩法说明</h2>
-      <p className="px-2 pb-2 text-sm leading-relaxed whitespace-pre-line text-muted">{text}</p>
+    <section className="rounded-3xl bg-background/90 px-6 py-6 shadow-2xl ring-1 ring-black/5 backdrop-blur-xl dark:ring-white/10">
+      <h2 className="text-lg font-bold tracking-tight">玩法说明</h2>
+      <p className="mt-3 text-sm leading-relaxed whitespace-pre-line text-muted">{text}</p>
     </section>
   );
 }
