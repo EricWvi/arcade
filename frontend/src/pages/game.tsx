@@ -5,8 +5,9 @@ import { Link } from "wouter";
 import { artBackground, GameArt } from "@/components/game-art";
 import { allShelves, findGame, gameSource, moreGames } from "@/data/home";
 import { useCatalog } from "@/hooks/use-catalog";
-import type { Game, Swf } from "@/lib/api";
+import type { Game, Saves, Swf } from "@/lib/api";
 import { loadMovie, type Ruffle, ruffleChromeUrl, ruffleDownloadsUrl, waitForRuffle } from "@/lib/ruffle";
+import { restoreSaves, sharedObjectPrefix, syncSaves } from "@/lib/saves";
 import { NotFound } from "@/pages/not-found";
 
 export function GamePage({ id }: { id: string }) {
@@ -90,26 +91,44 @@ function Stage({ ref, game }: { ref: React.Ref<HTMLDivElement>; game: Game }) {
 type PlayerState = "detecting" | "missing" | "playing" | "failed";
 
 /**
- * Starts the movie as soon as Ruffle is found. Browsers hold back sound
+ * Restores the user's saves, then starts the movie as soon as Ruffle is
+ * found, and keeps the saves synced while it runs. Browsers hold back sound
  * until the first click or key press, which Ruffle then resumes.
  */
 function Player({ game, swf }: { game: Game; swf: Swf }) {
   const { url, base } = gameSource(game.id, swf);
   const [state, setState] = useState<PlayerState>("detecting");
+  const [error, setError] = useState("");
   const ruffle = useRef<Ruffle | null>(null);
+  const synced = useRef<Saves>({});
   const host = useRef<HTMLDivElement>(null);
+  const prefix = sharedObjectPrefix(url);
 
   useEffect(() => {
     let live = true;
-    waitForRuffle().then((found) => {
-      if (!live) return;
+    (async () => {
+      const found = await waitForRuffle();
+      if (!found) {
+        if (live) setState("missing");
+        return;
+      }
+      try {
+        synced.current = await restoreSaves(game.id, prefix);
+      } catch (err) {
+        console.error("restore saves", err);
+        if (live) {
+          setError("存档读取失败");
+          setState("failed");
+        }
+        return;
+      }
       ruffle.current = found;
-      setState(found ? "playing" : "missing");
-    });
+      if (live) setState("playing");
+    })();
     return () => {
       live = false;
     };
-  }, []);
+  }, [game.id, prefix]);
 
   useEffect(() => {
     if (state !== "playing" || !ruffle.current || !host.current) return;
@@ -130,10 +149,16 @@ function Player({ game, swf }: { game: Game; swf: Swf }) {
       openUrlMode: "confirm",
     }).catch((err: unknown) => {
       console.error("ruffle load", err);
+      setError("游戏加载失败");
       setState("failed");
     });
-    return () => player.remove();
-  }, [state, url, base]);
+    const stopSync = syncSaves(game.id, prefix, synced.current);
+    return () => {
+      // Ruffle may flush saves as it is torn down, so sync after removing it.
+      player.remove();
+      stopSync();
+    };
+  }, [state, url, base, game.id, prefix]);
 
   switch (state) {
     case "detecting":
@@ -141,7 +166,7 @@ function Player({ game, swf }: { game: Game; swf: Swf }) {
     case "missing":
       return <InstallRuffle />;
     case "failed":
-      return <Notice title="游戏加载失败" detail="刷新页面再试一次" />;
+      return <Notice title={error} detail="刷新页面再试一次" />;
     case "playing":
       return <div ref={host} className="absolute inset-0" />;
   }

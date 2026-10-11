@@ -27,6 +27,9 @@ export type Swf = {
   height: number;
 };
 
+/** A user's saved data for one game, by save name. */
+export type Saves = Record<string, string>;
+
 /** A home page row; games are in display order. */
 export type Shelf = {
   id: string;
@@ -49,10 +52,15 @@ export class ApiError extends Error {
 
 export const goToLogin = () => window.location.assign("/auth/login");
 
-async function request<T>(method: string, path: string): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(path, { method, cache: "no-store" });
+    res = await fetch(path, {
+      method,
+      cache: "no-store",
+      ...(body === undefined ? {} : { body: JSON.stringify(body), headers: { "Content-Type": "application/json" } }),
+      ...init,
+    });
   } catch {
     throw new ApiError(0, "无法连接服务器");
   }
@@ -71,6 +79,10 @@ async function request<T>(method: string, path: string): Promise<T> {
 export const api = {
   me: () => request<User>("GET", "/api/me"),
   catalog: () => request<Catalog>("GET", "/api/catalog"),
+  saves: (game: string) => request<{ saves: Saves }>("GET", `/api/games/${game}/saves`),
+  /** Writes the named saves; null deletes one. keepalive outlives the page. */
+  putSaves: (game: string, saves: Record<string, string | null>, keepalive = false) =>
+    request<void>("PUT", `/api/games/${game}/saves`, { saves }, { keepalive }),
 };
 
 /** Ends this browser's session on the server. */

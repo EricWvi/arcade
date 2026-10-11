@@ -25,6 +25,8 @@ games/             → /app/games（games_dir）
 
 游戏由用户浏览器里的 [Ruffle 扩展](https://chromewebstore.google.com/detail/donbcfbmhbcapadipfkeojnmajbakjdc)运行，没装扩展时游戏区域会提示安装。
 
+存档按用户存在数据库里：`GET /api/games/<key>/saves` 读取，`PUT` 写入（`{"saves": {"<名字>": "<数据>"}}`，值为 null 表示删除）。Flash 游戏的 SharedObject 由 Ruffle 写进 localStorage，前端在启动游戏前从服务器恢复，游戏运行时自动同步回去。
+
 OIDC client secret 建议用环境变量 `ARCADE_OIDC_CLIENT_SECRET`。在 Authelia 注册回调地址 `<public_url>/auth/callback`。
 
 ## 部署
