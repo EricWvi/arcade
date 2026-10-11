@@ -16,24 +16,43 @@ import { playTime, timeAgo } from "@/lib/format";
  */
 export function RecentlyPlayed({ games = [], loading }: { games?: RecentGame[]; loading: boolean }) {
   const [active, setActive] = useState<RecentGame | null>(null);
+  // Games hovered so far. Their posters stay mounted so switching back and
+  // forth fades instead of reloading; unhovered posters are never fetched.
+  const [seen, setSeen] = useState<string[]>([]);
+  const show = (g: RecentGame) => {
+    setActive(g);
+    setSeen((ids) => (ids.includes(g.id) ? ids : [...ids, g.id]));
+  };
   // While loading, assume a returning player so the headline rarely changes.
   const fresh = !loading && games.length === 0;
 
   return (
     <section
-      className="relative isolate overflow-hidden rounded-3xl bg-[#3a2a6b] transition-colors duration-500"
-      style={active ? { backgroundColor: artBackground(active, true) } : undefined}
+      className="relative isolate overflow-hidden rounded-3xl bg-[#3a2a6b]"
       onMouseLeave={() => setActive(null)}
     >
-      {/* Posters keep their subject on the right, so narrow screens crop from the left. */}
+      {/*
+        Posters keep their subject on the right, so narrow screens crop from
+        the left. Game posters cross-fade over the site poster, which stays
+        underneath; a newly mounted one fades in from transparent too.
+      */}
       <BlurImage
         src={defaultPoster}
         placeholder={defaultPosterBlur}
         alt=""
-        className={`absolute inset-0 -z-20 transition-opacity duration-500 ${active ? "opacity-0" : "opacity-100"}`}
+        className="absolute inset-0 -z-20"
         imgClassName="object-[75%_center]"
       />
-      {active && <GameArt key={active.id} game={active} kind="poster" className="-z-20" />}
+      {games
+        .filter((g) => seen.includes(g.id))
+        .map((g) => (
+          <GameArt
+            key={g.id}
+            game={g}
+            kind="poster"
+            className={`-z-20 transition-opacity duration-500 starting:opacity-0 ${active?.id === g.id ? "opacity-100" : "opacity-0"}`}
+          />
+        ))}
       {/*
         Keeps the white headline and tile names readable over any poster.
         Light pages get a lighter scrim so the poster stays bright; text
@@ -60,12 +79,12 @@ export function RecentlyPlayed({ games = [], loading }: { games?: RecentGame[]; 
               <Link
                 href={`/games/${g.id}`}
                 className="group block w-18 text-center outline-none sm:w-22"
-                onMouseEnter={() => setActive(g)}
-                onFocus={() => setActive(g)}
+                onMouseEnter={() => show(g)}
+                onFocus={() => show(g)}
                 onBlur={() => setActive(null)}
               >
                 <span
-                  className="relative block aspect-square overflow-hidden rounded-xl border-2 border-white/90 shadow-lg transition-transform duration-200 group-hover:scale-105 group-focus-visible:scale-105 group-focus-visible:ring-4 group-focus-visible:ring-white/60"
+                  className="relative block aspect-square overflow-hidden rounded-xl shadow-lg transition-transform duration-200 group-hover:scale-105 group-focus-visible:scale-105 group-focus-visible:ring-4 group-focus-visible:ring-white/60"
                   style={{ backgroundColor: artBackground(g, true) }}
                 >
                   <GameArt game={g} kind="icon" />
