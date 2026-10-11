@@ -1,0 +1,19 @@
+# HTTP listen address
+listen: ":36753"
+# SQLite database. A relative path is resolved against the directory of
+# this file, so in the container it lands in the mounted config directory.
+database: "arcade.db"
+
+# Origin browsers use to reach this site. The OIDC redirect URI is
+# <public_url>/auth/callback and must be registered with the provider.
+public_url: "https://arcade.example.com"
+
+# Authelia (or any OIDC provider) confidential client.
+oidc:
+  issuer: "https://auth.example.com"
+  client_id: "arcade"
+  # Prefer the ARCADE_OIDC_CLIENT_SECRET environment variable.
+  client_secret: ""
+
+# Local development only: skip OIDC and sign every request in as this user.
+# dev_user: "eric"
