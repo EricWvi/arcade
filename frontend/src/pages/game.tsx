@@ -1,4 +1,4 @@
-import { Maximize, Play } from "lucide-react";
+import { Maximize } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 
@@ -87,9 +87,12 @@ function Stage({ ref, game }: { ref: React.Ref<HTMLDivElement>; game: Game }) {
   );
 }
 
-type PlayerState = "detecting" | "missing" | "ready" | "playing" | "failed";
+type PlayerState = "detecting" | "missing" | "playing" | "failed";
 
-/** Waits for Ruffle, then starts the movie on a click, so it may play sound. */
+/**
+ * Starts the movie as soon as Ruffle is found. Browsers hold back sound
+ * until the first click or key press, which Ruffle then resumes.
+ */
 function Player({ game, swf }: { game: Game; swf: Swf }) {
   const { url, base } = gameSource(game.id, swf);
   const [state, setState] = useState<PlayerState>("detecting");
@@ -101,7 +104,7 @@ function Player({ game, swf }: { game: Game; swf: Swf }) {
     waitForRuffle().then((found) => {
       if (!live) return;
       ruffle.current = found;
-      setState(found ? "ready" : "missing");
+      setState(found ? "playing" : "missing");
     });
     return () => {
       live = false;
@@ -139,18 +142,6 @@ function Player({ game, swf }: { game: Game; swf: Swf }) {
       return <InstallRuffle />;
     case "failed":
       return <Notice title="游戏加载失败" detail="刷新页面再试一次" />;
-    case "ready":
-      return (
-        <div className="absolute inset-0 grid place-items-center">
-          <button
-            onClick={() => setState("playing")}
-            className="grid size-20 place-items-center rounded-full bg-white/90 text-black shadow-xl transition hover:scale-105 hover:bg-white"
-            aria-label="开始游戏"
-          >
-            <Play className="size-8 translate-x-0.5 fill-current" />
-          </button>
-        </div>
-      );
     case "playing":
       return <div ref={host} className="absolute inset-0" />;
   }
