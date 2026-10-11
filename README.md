@@ -23,6 +23,8 @@ games/             → /app/games（games_dir）
 
 容器内的 `config.yaml` 应设置 `games_dir: "/app/games"`。前端通过 `GET /api/catalog` 拿到 games.yaml 里的分区和游戏（含磁盘上已有的图片种类），再按 key 请求 `GET /games/<key>/imgs/<name>`；游戏文件走 `GET /games/<key>/sources/<path>`（只放行 swf、xml、图片、mp3 等类型，不能跳出 sources 目录）。这些都需要登录。
 
+接入新游戏时用到的工具、解包和排查方法见 [docs/flash-debugging.md](docs/flash-debugging.md)。
+
 游戏由用户浏览器里的 [Ruffle 扩展](https://chromewebstore.google.com/detail/donbcfbmhbcapadipfkeojnmajbakjdc)运行，没装扩展时游戏区域会提示安装。
 
 存档按用户存在数据库里：`GET /api/games/<key>/saves` 读取（附每个存档的更新时间），`PUT` 写入（`{"saves": {"<名字>": "<数据>"}}`，值为 null 表示删除）。games.yaml 的 `saves` 决定存档方式：
