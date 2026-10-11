@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 
 // The placeholder is inlined so it paints with the first render.
@@ -9,20 +9,48 @@ import { artBackground, GameArt } from "@/components/game-art";
 import type { RecentGame } from "@/lib/api";
 import { playTime, timeAgo } from "@/lib/format";
 
+/** The slideshow starts this long after the page opens, then moves on at slideEvery. */
+const firstSlideAfter = 5000;
+const slideEvery = 6000;
+
 /**
- * The hero banner. Its background is the site poster until a game is
- * hovered or focused, then that game's poster. Before anything has been
- * played it is just the poster and a welcome.
+ * The hero banner. Its background starts as the site poster; five seconds
+ * in, it begins cycling through the recent games' posters and back to the
+ * site poster. Hovering or focusing a game shows its poster and details and
+ * pauses the cycle. Before anything has been played it is just the poster
+ * and a welcome.
  */
 export function RecentlyPlayed({ games = [], loading }: { games?: RecentGame[]; loading: boolean }) {
   const [active, setActive] = useState<RecentGame | null>(null);
-  // Games hovered so far. Their posters stay mounted so switching back and
-  // forth fades instead of reloading; unhovered posters are never fetched.
+  // 0 is the site poster, n is games[n - 1].
+  const [slide, setSlide] = useState(0);
+  const started = useRef(false);
+  const featured = slide > 0 ? games[slide - 1] : undefined;
+  const poster = active ?? featured;
+  // Games shown so far. Their posters stay mounted so switching back and
+  // forth fades instead of reloading; posters never shown are never fetched.
   const [seen, setSeen] = useState<string[]>([]);
+  const markSeen = (id: string) => setSeen((ids) => (ids.includes(id) ? ids : [...ids, id]));
   const show = (g: RecentGame) => {
     setActive(g);
-    setSeen((ids) => (ids.includes(g.id) ? ids : [...ids, g.id]));
+    markSeen(g.id);
   };
+
+  useEffect(() => {
+    if (featured) markSeen(featured.id);
+  }, [featured]);
+
+  useEffect(() => {
+    if (active || games.length === 0 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setTimeout(
+      () => {
+        started.current = true;
+        setSlide((n) => (n + 1) % (games.length + 1));
+      },
+      started.current ? slideEvery : firstSlideAfter,
+    );
+    return () => window.clearTimeout(timer);
+  }, [active, games.length, slide]);
   // While loading, assume a returning player so the headline rarely changes.
   const fresh = !loading && games.length === 0;
 
@@ -50,7 +78,7 @@ export function RecentlyPlayed({ games = [], loading }: { games?: RecentGame[]; 
             key={g.id}
             game={g}
             kind="poster"
-            className={`-z-20 transition-opacity duration-500 starting:opacity-0 ${active?.id === g.id ? "opacity-100" : "opacity-0"}`}
+            className={`-z-20 transition-opacity duration-700 starting:opacity-0 ${poster?.id === g.id ? "opacity-100" : "opacity-0"}`}
           />
         ))}
       {/*
