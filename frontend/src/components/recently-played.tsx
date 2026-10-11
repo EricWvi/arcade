@@ -101,12 +101,12 @@ export function RecentlyPlayed({ games = [], loading }: { games?: RecentGame[]; 
           )}
         </div>
         {/* Scrolling clips both axes; the vertical padding leaves room for the hover scale and focus ring. */}
-        <ul className="-mx-6 -my-3 flex gap-3 overflow-x-auto px-6 py-3 [scrollbar-width:none] sm:-mx-10 sm:gap-5 sm:px-10">
+        <ul className="-mx-6 -my-3 flex gap-6 overflow-x-auto px-6 py-3 [scrollbar-width:none] sm:-mx-10 sm:gap-9 sm:px-10">
           {games.map((g) => (
             <li key={g.id} className="shrink-0">
               <Link
                 href={`/games/${g.id}`}
-                className="group block w-18 text-center outline-none sm:w-22"
+                className="group block w-15 text-center outline-none sm:w-18"
                 onMouseEnter={() => show(g)}
                 onFocus={() => show(g)}
                 onBlur={() => setActive(null)}
