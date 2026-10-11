@@ -1,6 +1,9 @@
 import { useState } from "react";
 
+// The placeholder is inlined so it paints with the first render.
+import defaultPosterBlur from "@/assets/default-poster.blur.webp?inline";
 import defaultPoster from "@/assets/default-poster.webp";
+import { BlurImage } from "@/components/blur-image";
 import type { Game } from "@/data/home";
 
 /**
@@ -17,11 +20,12 @@ export function RecentlyPlayed({ games }: { games: Game[] }) {
       onMouseLeave={() => setActive(null)}
     >
       {/* Posters keep their subject on the right, so narrow screens crop from the left. */}
-      <img
+      <BlurImage
         src={defaultPoster}
+        placeholder={defaultPosterBlur}
         alt=""
-        className="absolute inset-0 -z-20 size-full object-cover object-[75%_center] transition-opacity duration-500"
-        style={{ opacity: active ? 0 : 1 }}
+        className={`absolute inset-0 -z-20 transition-opacity duration-500 ${active ? "opacity-0" : "opacity-100"}`}
+        imgClassName="object-[75%_center]"
       />
       {/*
         Keeps the white headline and tile names readable over any poster.
