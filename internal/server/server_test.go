@@ -70,7 +70,7 @@ func newServerWith(t *testing.T, cfg auth.Config) (http.Handler, string) {
 			"hot-air-1": {Title: "Hot Air", SWF: "missing.swf"},
 		},
 	}
-	h, err := New(auth.New(st, cfg), web, Options{Version: "test", GamesDir: games, Catalog: cat})
+	h, err := New(auth.New(st, cfg), web, Options{Version: "test", GamesDir: games, Catalog: cat, Store: st})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,5 +226,49 @@ func TestCatalogKeepsOrderAndListsImagesOnDisk(t *testing.T) {
 			t.Fatalf("version unchanged after replacing %s", name)
 		}
 		version = next
+	}
+}
+
+func TestSaves(t *testing.T) {
+	h := newServer(t, auth.Config{DevUser: "eric"})
+	put := func(path, body string) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest("PUT", path, strings.NewReader(body)))
+		return rec
+	}
+	saves := func() map[string]map[string]string {
+		t.Helper()
+		rec := do(h, "GET", "/api/games/zmxy-1/saves")
+		var got map[string]map[string]string
+		if rec.Code != 200 || json.Unmarshal(rec.Body.Bytes(), &got) != nil {
+			t.Fatalf("saves: %d %s", rec.Code, rec.Body)
+		}
+		return got
+	}
+	if got := saves(); !reflect.DeepEqual(got, map[string]map[string]string{"saves": {}}) {
+		t.Fatalf("empty saves = %v", got)
+	}
+	if rec := put("/api/games/zmxy-1/saves", `{"saves":{"levels":"AL8A","stars":"AL8B"}}`); rec.Code != 204 {
+		t.Fatalf("put: %d %s", rec.Code, rec.Body)
+	}
+	if rec := put("/api/games/zmxy-1/saves", `{"saves":{"stars":null,"levels":"AL8C"}}`); rec.Code != 204 {
+		t.Fatalf("put with delete: %d %s", rec.Code, rec.Body)
+	}
+	if got := saves()["saves"]; !reflect.DeepEqual(got, map[string]string{"levels": "AL8C"}) {
+		t.Fatalf("saves = %v", got)
+	}
+
+	for body, code := range map[string]int{
+		`{"saves":{}}`:           400,
+		`not json`:               400,
+		`{"saves":{"a\nb":"x"}}`: 400,
+		`{"saves":{"big":"` + strings.Repeat("x", maxSaveData+1) + `"}}`: 413,
+	} {
+		if rec := put("/api/games/zmxy-1/saves", body); rec.Code != code {
+			t.Errorf("put %.40s: %d, want %d", body, rec.Code, code)
+		}
+	}
+	if rec := put("/api/games/unknown/saves", `{"saves":{"a":"b"}}`); rec.Code != 404 {
+		t.Errorf("unknown game: %d", rec.Code)
 	}
 }

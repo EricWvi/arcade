@@ -8,6 +8,7 @@ import (
 
 	"arcade/internal/auth"
 	"arcade/internal/catalog"
+	"arcade/internal/store"
 )
 
 // Options configures the server.
@@ -17,6 +18,8 @@ type Options struct {
 	GamesDir string
 	// Catalog is games.yaml, served by GET /api/catalog.
 	Catalog catalog.Catalog
+	// Store holds each user's game saves.
+	Store *store.Store
 }
 
 type server struct {
@@ -46,6 +49,8 @@ func New(authn *auth.Service, web fs.FS, opts Options) (http.Handler, error) {
 
 	private.HandleFunc("GET /api/me", s.getMe)
 	private.HandleFunc("GET /api/catalog", s.getCatalog)
+	private.HandleFunc("GET /api/games/{key}/saves", s.getSaves)
+	private.HandleFunc("PUT /api/games/{key}/saves", s.putSaves)
 	private.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "接口不存在")
 	})

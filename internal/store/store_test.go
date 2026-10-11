@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -82,5 +83,34 @@ func TestReopenKeepsData(t *testing.T) {
 	defer s.Close()
 	if got, _, err := s.SessionUser(ctx, token); err != nil || got.ID != u.ID {
 		t.Fatalf("after reopen: user = %+v, err = %v", got, err)
+	}
+}
+
+func TestSavesArePerUserAndGame(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	alice, _ := s.UpsertUser(ctx, Identity{Issuer: "i", Subject: "alice"})
+	bob, _ := s.UpsertUser(ctx, Identity{Issuer: "i", Subject: "bob"})
+	str := func(v string) *string { return &v }
+
+	if err := s.PutSaves(ctx, alice.ID, "hot-air-1", map[string]*string{"levels": str("1"), "stars": str("2")}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.PutSaves(ctx, bob.ID, "hot-air-1", map[string]*string{"levels": str("bob")}); err != nil {
+		t.Fatal(err)
+	}
+	// Overwrites one, deletes one, keeps the rest.
+	if err := s.PutSaves(ctx, alice.ID, "hot-air-1", map[string]*string{"levels": str("3"), "stars": nil, "time": str("4")}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.Saves(ctx, alice.ID, "hot-air-1")
+	if err != nil || !reflect.DeepEqual(got, map[string]string{"levels": "3", "time": "4"}) {
+		t.Fatalf("alice = %v, %v", got, err)
+	}
+	if got, _ := s.Saves(ctx, bob.ID, "hot-air-1"); !reflect.DeepEqual(got, map[string]string{"levels": "bob"}) {
+		t.Fatalf("bob = %v", got)
+	}
+	if got, _ := s.Saves(ctx, alice.ID, "zmxy-1"); len(got) != 0 {
+		t.Fatalf("other game = %v", got)
 	}
 }

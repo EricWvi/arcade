@@ -76,7 +76,7 @@ func run(configPath string) error {
 		ClientSecret: cfg.OIDC.ClientSecret,
 		DevUser:      cfg.DevUser,
 	})
-	handler, err := server.New(authn, arcade.Frontend(), server.Options{Version: version, GamesDir: cfg.GamesDir, Catalog: games})
+	handler, err := server.New(authn, arcade.Frontend(), server.Options{Version: version, GamesDir: cfg.GamesDir, Catalog: games, Store: st})
 	if err != nil {
 		return err
 	}

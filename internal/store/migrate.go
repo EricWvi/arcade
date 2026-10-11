@@ -38,6 +38,18 @@ var migrations = []migration{
 	);
 	CREATE INDEX sessions_user ON sessions (user_id);
 	`),
+	execSQL(`
+	-- A game's saved data per user, by save name. Data is opaque to the
+	-- server; for Flash games it is a base64 SharedObject from Ruffle.
+	CREATE TABLE saves (
+		user_id    INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+		game       TEXT    NOT NULL,
+		name       TEXT    NOT NULL,
+		data       TEXT    NOT NULL,
+		updated_at INTEGER NOT NULL,
+		PRIMARY KEY (user_id, game, name)
+	) WITHOUT ROWID;
+	`),
 }
 
 func migrate(db *sql.DB) error {

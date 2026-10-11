@@ -1,4 +1,4 @@
-// Package store persists users and sessions in SQLite.
+// Package store persists users, sessions and game saves in SQLite.
 package store
 
 import (
