@@ -1,4 +1,4 @@
-import { Maximize } from "lucide-react";
+import { Bell, BellOff, Maximize } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 
@@ -6,7 +6,15 @@ import { artBackground, GameArt } from "@/components/game-art";
 import { allShelves, findGame, gameSource, moreGames } from "@/data/home";
 import { useCatalog } from "@/hooks/use-catalog";
 import type { Game, Saves, Swf } from "@/lib/api";
-import { loadMovie, type Ruffle, ruffleChromeUrl, ruffleDownloadsUrl, waitForRuffle } from "@/lib/ruffle";
+import {
+  loadMovie,
+  type Ruffle,
+  ruffleChromeUrl,
+  ruffleDownloadsUrl,
+  type RufflePlayer,
+  setVolume,
+  waitForRuffle,
+} from "@/lib/ruffle";
 import { restoreSaves, sharedObjectPrefix, syncSaves } from "@/lib/saves";
 import { NotFound } from "@/pages/not-found";
 
@@ -25,6 +33,7 @@ export function GamePage({ id }: { id: string }) {
  */
 function Playfield({ game, more }: { game: Game; more: Game[] }) {
   const stage = useRef<HTMLDivElement>(null);
+  const [muted, setMuted] = useMuted();
 
   useEffect(() => {
     document.title = `${game.title} - Arcade`;
@@ -49,7 +58,10 @@ function Playfield({ game, more }: { game: Game; more: Game[] }) {
               <GameArt game={game} kind="icon" />
             </span>
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-xl font-bold tracking-tight">{game.title}</h1>
+              <div className="flex items-center gap-1">
+                <h1 className="truncate text-xl font-bold tracking-tight">{game.title}</h1>
+                {game.swf && <SoundBell muted={muted} onToggle={() => setMuted(!muted)} />}
+              </div>
               <p className="truncate text-sm text-muted">{game.subtitle}</p>
             </div>
             <button
@@ -60,7 +72,7 @@ function Playfield({ game, more }: { game: Game; more: Game[] }) {
               全屏
             </button>
           </header>
-          <Stage ref={stage} game={game} />
+          <Stage ref={stage} game={game} muted={muted} />
         </section>
 
         <MoreGames games={more} />
@@ -74,7 +86,7 @@ function Playfield({ game, more }: { game: Game; more: Game[] }) {
  * aspect ratio and is capped so the whole panel fits the window (or the
  * screen, in full screen), letterboxed in black.
  */
-function Stage({ ref, game }: { ref: React.Ref<HTMLDivElement>; game: Game }) {
+function Stage({ ref, game, muted }: { ref: React.Ref<HTMLDivElement>; game: Game; muted: boolean }) {
   const ratio = game.swf?.width && game.swf.height ? game.swf.width / game.swf.height : 4 / 3;
   return (
     <div ref={ref} className="flex items-center bg-black">
@@ -82,7 +94,7 @@ function Stage({ ref, game }: { ref: React.Ref<HTMLDivElement>; game: Game }) {
         style={{ "--ratio": ratio, aspectRatio: ratio } as React.CSSProperties}
         className="relative mx-auto w-full max-w-[calc((100svh-17rem)*var(--ratio))] min-w-0 overflow-hidden [:fullscreen>&]:max-w-[calc(100svh*var(--ratio))]"
       >
-        {game.swf ? <Player key={game.id} game={game} swf={game.swf} /> : <Notice title="这个游戏还不能玩" />}
+        {game.swf ? <Player key={game.id} game={game} swf={game.swf} muted={muted} /> : <Notice title="这个游戏还不能玩" />}
       </div>
     </div>
   );
@@ -95,13 +107,17 @@ type PlayerState = "detecting" | "missing" | "playing" | "failed";
  * found, and keeps the saves synced while it runs. Browsers hold back sound
  * until the first click or key press, which Ruffle then resumes.
  */
-function Player({ game, swf }: { game: Game; swf: Swf }) {
+function Player({ game, swf, muted }: { game: Game; swf: Swf; muted: boolean }) {
   const { url, base } = gameSource(game.id, swf);
   const [state, setState] = useState<PlayerState>("detecting");
   const [error, setError] = useState("");
   const ruffle = useRef<Ruffle | null>(null);
   const synced = useRef<Saves>({});
   const host = useRef<HTMLDivElement>(null);
+  const player = useRef<RufflePlayer | null>(null);
+  const loaded = useRef(false);
+  const mutedNow = useRef(muted);
+  mutedNow.current = muted;
   const prefix = sharedObjectPrefix(url);
 
   useEffect(() => {
@@ -132,10 +148,11 @@ function Player({ game, swf }: { game: Game; swf: Swf }) {
 
   useEffect(() => {
     if (state !== "playing" || !ruffle.current || !host.current) return;
-    const player = ruffle.current.createPlayer();
-    player.className = "absolute inset-0 size-full";
-    host.current.append(player);
-    loadMovie(player, {
+    const el = ruffle.current.createPlayer();
+    el.className = "absolute inset-0 size-full";
+    host.current.append(el);
+    player.current = el;
+    loadMovie(el, {
       url,
       base,
       autoplay: "on",
@@ -147,7 +164,12 @@ function Player({ game, swf }: { game: Game; swf: Swf }) {
       allowScriptAccess: false,
       contextMenu: "rightClickOnly",
       openUrlMode: "confirm",
-    }).catch((err: unknown) => {
+    })
+      .then(() => {
+        loaded.current = true;
+        setVolume(el, mutedNow.current ? 0 : 1);
+      })
+      .catch((err: unknown) => {
       console.error("ruffle load", err);
       setError("游戏加载失败");
       setState("failed");
@@ -155,10 +177,16 @@ function Player({ game, swf }: { game: Game; swf: Swf }) {
     const stopSync = syncSaves(game.id, prefix, synced.current);
     return () => {
       // Ruffle may flush saves as it is torn down, so sync after removing it.
-      player.remove();
+      el.remove();
+      player.current = null;
+      loaded.current = false;
       stopSync();
     };
   }, [state, url, base, game.id, prefix]);
+
+  useEffect(() => {
+    if (player.current && loaded.current) setVolume(player.current, muted ? 0 : 1);
+  }, [muted]);
 
   switch (state) {
     case "detecting":
@@ -170,6 +198,58 @@ function Player({ game, swf }: { game: Game; swf: Swf }) {
     case "playing":
       return <div ref={host} className="absolute inset-0" />;
   }
+}
+
+const mutedKey = "arcade:muted";
+
+/** Whether game sound is off, remembered in this browser. */
+function useMuted() {
+  const [muted, setMuted] = useState(() => {
+    try {
+      return localStorage.getItem(mutedKey) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const set = (next: boolean) => {
+    setMuted(next);
+    try {
+      if (next) localStorage.setItem(mutedKey, "1");
+      else localStorage.removeItem(mutedKey);
+    } catch {
+      // Not remembered, which only matters on the next visit.
+    }
+  };
+  return [muted, set] as const;
+}
+
+/**
+ * Turns game sound on and off. Like YouTube's subscribe bell, turning it
+ * on rings the bell and muting pops it; each click replays the animation.
+ */
+function SoundBell({ muted, onToggle }: { muted: boolean; onToggle: () => void }) {
+  const [clicks, setClicks] = useState(0);
+  const Icon = muted ? BellOff : Bell;
+  return (
+    <button
+      onClick={() => {
+        setClicks((n) => n + 1);
+        onToggle();
+      }}
+      aria-pressed={!muted}
+      aria-label={muted ? "打开声音" : "静音"}
+      title={muted ? "打开声音" : "静音"}
+      className="relative grid size-8 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-surface hover:text-foreground"
+    >
+      {clicks > 0 && !muted && (
+        <span key={`ripple-${clicks}`} className="absolute inset-0 rounded-full bg-accent motion-safe:animate-bell-ripple motion-reduce:hidden" />
+      )}
+      <Icon
+        key={clicks}
+        className={`relative size-5 origin-top ${muted ? "" : "text-foreground"} ${clicks === 0 ? "" : muted ? "motion-safe:animate-bell-pop" : "motion-safe:animate-bell-ring"}`}
+      />
+    </button>
+  );
 }
 
 function Notice({ title, detail }: { title: string; detail?: string }) {

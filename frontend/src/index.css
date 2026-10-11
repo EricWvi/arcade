@@ -40,6 +40,56 @@
   --color-danger: var(--danger);
 }
 
+/*
+ * The sound bell's click feedback, after YouTube's subscribe bell: turning
+ * sound on rings the bell inside a fading ripple; muting just pops it.
+ */
+@theme {
+  --animate-bell-ring: bell-ring 0.8s ease-in-out;
+  --animate-bell-ripple: bell-ripple 0.6s ease-out forwards;
+  --animate-bell-pop: bell-pop 0.25s ease-out;
+
+  @keyframes bell-ring {
+    0%,
+    100% {
+      rotate: 0deg;
+    }
+    10% {
+      rotate: 24deg;
+    }
+    25% {
+      rotate: -20deg;
+    }
+    40% {
+      rotate: 14deg;
+    }
+    55% {
+      rotate: -9deg;
+    }
+    70% {
+      rotate: 5deg;
+    }
+    85% {
+      rotate: -2deg;
+    }
+  }
+  @keyframes bell-ripple {
+    from {
+      scale: 0.5;
+      opacity: 0.35;
+    }
+    to {
+      scale: 1.6;
+      opacity: 0;
+    }
+  }
+  @keyframes bell-pop {
+    40% {
+      scale: 0.8;
+    }
+  }
+}
+
 @layer base {
   * {
     @apply border-line;

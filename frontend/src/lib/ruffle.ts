@@ -21,7 +21,7 @@ export type RuffleLoadOptions = {
   openUrlMode?: "allow" | "confirm" | "deny";
 };
 
-type RuffleHandle = { load(options: RuffleLoadOptions): Promise<void> };
+type RuffleHandle = { load(options: RuffleLoadOptions): Promise<void>; volume: number };
 
 /** A <ruffle-player>. Newer Ruffle moves load() behind ruffle(). */
 export type RufflePlayer = HTMLElement & Partial<RuffleHandle> & { ruffle?: () => RuffleHandle };
@@ -51,7 +51,12 @@ export function waitForRuffle(timeout = 2000): Promise<Ruffle | null> {
   });
 }
 
-export function loadMovie(player: RufflePlayer, options: RuffleLoadOptions) {
-  const handle = typeof player.ruffle === "function" ? player.ruffle() : (player as RuffleHandle);
-  return handle.load(options);
+const handle = (player: RufflePlayer) =>
+  typeof player.ruffle === "function" ? player.ruffle() : (player as unknown as RuffleHandle);
+
+export const loadMovie = (player: RufflePlayer, options: RuffleLoadOptions) => handle(player).load(options);
+
+/** Sets the volume, 0 to 1. Ruffle ignores it until a movie is loaded. */
+export function setVolume(player: RufflePlayer, volume: number) {
+  handle(player).volume = volume;
 }
