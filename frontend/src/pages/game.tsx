@@ -58,7 +58,7 @@ function Playfield({ game, more }: { game: Game; more: Game[] }) {
               全屏
             </button>
           </header>
-          <Stage ref={stage} game={game} />
+          <Stage ref={stage} />
         </section>
 
         <MoreGames games={more} />
@@ -68,15 +68,14 @@ function Playfield({ game, more }: { game: Game; more: Game[] }) {
 }
 
 /**
- * Where the Flash player will run. Until then it shows the cover and a play
- * button. The 4:3 stage is capped so the whole panel fits the window (or the
+ * Where the Flash player will run. Until then it shows a play button on
+ * black. The 4:3 stage is capped so the whole panel fits the window (or the
  * screen, in full screen), letterboxed in black.
  */
-function Stage({ game, ref }: { game: Game; ref: React.Ref<HTMLDivElement> }) {
+function Stage({ ref }: { ref: React.Ref<HTMLDivElement> }) {
   return (
     <div ref={ref} className="flex items-center bg-black">
       <div className="relative mx-auto aspect-[4/3] w-full max-w-[calc((100svh-17rem)*4/3)] min-w-0 overflow-hidden [:fullscreen>&]:max-w-[calc(100svh*4/3)]">
-        <GameArt game={game} kind="card" className="opacity-40" />
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-white">
           <button
             disabled
