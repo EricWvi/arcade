@@ -21,10 +21,8 @@ export const gameSource = (id: string, swf: Swf) => {
 };
 
 /*
- * Mock data below stands in until it has a real source: recently played
- * will come from each user's history, and these shelves will move to
- * games.yaml once their games exist. Mock games have no images; `tint`
- * stands in for them.
+ * Mock shelves stand in until their games exist; then they move to
+ * games.yaml. Mock games have no images; `tint` stands in for them.
  */
 const game = (id: string, title: string, subtitle: string, tint: string): Game => ({
   id,
@@ -33,15 +31,6 @@ const game = (id: string, title: string, subtitle: string, tint: string): Game =
   tint,
   images: {},
 });
-
-export const recentlyPlayed: Game[] = [
-  game("pixel-island", "像素冒险岛", "动作冒险", "#4f8a3c"),
-  game("mushroom", "蘑菇大冒险", "横版冒险", "#d4553a"),
-  game("shovel-knight", "铲子骑士", "平台跳跃", "#2f5fa8"),
-  game("pvz", "植物大战僵尸", "策略塔防", "#6aa84f"),
-  game("angry-birds", "愤怒的小鸟", "物理解谜", "#c73a3a"),
-  game("megaman-x", "洛克人X", "动作射击", "#2c7fc9"),
-];
 
 /** Shown after the shelves from games.yaml. */
 export const mockShelves: Shelf[] = [
@@ -72,13 +61,12 @@ export const mockShelves: Shelf[] = [
 /** Every shelf the home page shows: games.yaml first, then the mock ones. */
 export const allShelves = (catalog?: Catalog): Shelf[] => [...(catalog?.shelves ?? []), ...mockShelves];
 
-/** Finds a game on any shelf, or among the recently played mocks. */
+/** Finds a game on any shelf. */
 export function findGame(shelves: Shelf[], id: string): Game | undefined {
   for (const s of shelves) {
     const game = s.games.find((g) => g.id === id);
     if (game) return game;
   }
-  return recentlyPlayed.find((g) => g.id === id);
 }
 
 /** Up to `limit` other games, those sharing a shelf with `game` first. */

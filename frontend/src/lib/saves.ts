@@ -54,10 +54,11 @@ export async function restoreSaves(game: string, prefix: string): Promise<Saves>
 /**
  * Uploads whatever the game writes to its saves, checking every couple of
  * seconds and once more when the page is hidden or the game closes. A
- * failed upload is retried on the next check. Returns a function that stops
+ * failed upload is retried on the next check, and onUpload runs after each
+ * one that succeeds. Returns a function that stops
  * syncing after a last upload.
  */
-export function syncSaves(game: string, prefix: string, synced: Saves): () => void {
+export function syncSaves(game: string, prefix: string, synced: Saves, onUpload?: () => void): () => void {
   let busy = false;
   // keepalive uploads skip the queue: the page may be going away.
   const upload = (keepalive = false) => {
@@ -70,6 +71,7 @@ export function syncSaves(game: string, prefix: string, synced: Saves): () => vo
       .putSaves(game, changes, keepalive)
       .then(() => {
         synced = now;
+        onUpload?.();
       })
       .catch((err: unknown) => console.warn("upload saves", err))
       .finally(() => {

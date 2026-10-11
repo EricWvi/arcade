@@ -15,6 +15,7 @@ import {
   setVolume,
   waitForRuffle,
 } from "@/lib/ruffle";
+import { trackPlay } from "@/lib/plays";
 import { restoreSaves, sharedObjectPrefix, syncSaves } from "@/lib/saves";
 import { NotFound } from "@/pages/not-found";
 
@@ -104,8 +105,9 @@ type PlayerState = "detecting" | "missing" | "playing" | "failed";
 
 /**
  * Restores the user's saves, then starts the movie as soon as Ruffle is
- * found, and keeps the saves synced while it runs. Browsers hold back sound
- * until the first click or key press, which Ruffle then resumes.
+ * found, and keeps the saves synced and the play recorded while it runs.
+ * Browsers hold back sound until the first click or key press, which
+ * Ruffle then resumes.
  */
 function Player({ game, swf, muted }: { game: Game; swf: Swf; muted: boolean }) {
   const { url, base } = gameSource(game.id, swf);
@@ -174,13 +176,15 @@ function Player({ game, swf, muted }: { game: Game; swf: Swf; muted: boolean }) 
       setError("游戏加载失败");
       setState("failed");
     });
-    const stopSync = syncSaves(game.id, prefix, synced.current);
+    const tracker = trackPlay(game.id, host.current, () => mutedNow.current);
+    const stopSync = syncSaves(game.id, prefix, synced.current, tracker.saveWritten);
     return () => {
       // Ruffle may flush saves as it is torn down, so sync after removing it.
       el.remove();
       player.current = null;
       loaded.current = false;
       stopSync();
+      tracker.stop();
     };
   }, [state, url, base, game.id, prefix]);
 

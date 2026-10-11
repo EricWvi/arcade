@@ -30,6 +30,27 @@ export type Swf = {
 /** A user's saved data for one game, by save name. */
 export type Saves = Record<string, string>;
 
+/** A game the user has played, for the recently played row. */
+export type RecentGame = Game & {
+  /** Unix milliseconds. */
+  lastPlayedAt: number;
+  /** Active play time over all plays. */
+  playedMs: number;
+};
+
+/** A play's running totals; see trackPlay. */
+export type PlayReport = {
+  game: string;
+  activeMs: number;
+  fullscreenMs: number;
+  keys: number;
+  clicks: number;
+  saveWrites: number;
+  muted: boolean;
+  timezone: string;
+  viewport: string;
+};
+
 /** A home page row; games are in display order. */
 export type Shelf = {
   id: string;
@@ -83,6 +104,9 @@ export const api = {
   /** Writes the named saves; null deletes one. keepalive outlives the page. */
   putSaves: (game: string, saves: Record<string, string | null>, keepalive = false) =>
     request<void>("PUT", `/api/games/${game}/saves`, { saves }, { keepalive }),
+  recentPlays: () => request<{ games: RecentGame[] }>("GET", "/api/plays/recent"),
+  putPlay: (id: string, report: PlayReport, keepalive = false) =>
+    request<void>("PUT", `/api/plays/${id}`, report, { keepalive }),
 };
 
 /** Ends this browser's session on the server. */
