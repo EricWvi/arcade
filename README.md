@@ -25,7 +25,10 @@ games/             → /app/games（games_dir）
 
 游戏由用户浏览器里的 [Ruffle 扩展](https://chromewebstore.google.com/detail/donbcfbmhbcapadipfkeojnmajbakjdc)运行，没装扩展时游戏区域会提示安装。
 
-存档按用户存在数据库里：`GET /api/games/<key>/saves` 读取，`PUT` 写入（`{"saves": {"<名字>": "<数据>"}}`，值为 null 表示删除）。Flash 游戏的 SharedObject 由 Ruffle 写进 localStorage，前端在启动游戏前从服务器恢复，游戏运行时自动同步回去。
+存档按用户存在数据库里：`GET /api/games/<key>/saves` 读取（附每个存档的更新时间），`PUT` 写入（`{"saves": {"<名字>": "<数据>"}}`，值为 null 表示删除）。games.yaml 的 `saves` 决定存档方式：
+
+- `shared-object`（默认）：游戏的 SharedObject 由 Ruffle 写进 localStorage，前端在启动游戏前从服务器恢复，游戏运行时自动同步回去。
+- `file`：游戏自己导出、导入存档文件（Flash 的 FileReference），例如造梦西游 SAV 版。前端拦截 Ruffle 的下载和文件选择，换成网页里的「保存游戏」「继续游戏」窗口，存档文件存在服务器上；也可以从电脑导入旧存档。
 
 游玩记录：每次打开游戏页算一局，前端用随机 UUID 作为 id，开局、每 30 秒、页面隐藏或离开时 `PUT /api/plays/<id>` 上报本局累计值（有效时长、全屏时长、按键数、点击数、存档写入次数等），服务器只取更大的值。有效时长只在页面可见且两分钟内有键鼠操作时累计。`GET /api/plays/recent` 返回最近玩过的 6 个游戏。采集的字段和可视化计划见 [docs/plays.md](docs/plays.md)。
 

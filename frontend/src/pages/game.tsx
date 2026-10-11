@@ -2,6 +2,7 @@ import { Bell, BellOff, Maximize } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 
+import { FileSaves } from "@/components/file-saves";
 import { artBackground, GameArt } from "@/components/game-art";
 import { allShelves, findGame, gameSource, moreGames } from "@/data/home";
 import { useCatalog } from "@/hooks/use-catalog";
@@ -15,7 +16,7 @@ import {
   setVolume,
   waitForRuffle,
 } from "@/lib/ruffle";
-import { trackPlay } from "@/lib/plays";
+import { type PlayTracker, trackPlay } from "@/lib/plays";
 import { restoreSaves, sharedObjectPrefix, syncSaves } from "@/lib/saves";
 import { NotFound } from "@/pages/not-found";
 
@@ -124,6 +125,8 @@ function Player({ game, swf, muted }: { game: Game; swf: Swf; muted: boolean }) 
   const mutedNow = useRef(muted);
   mutedNow.current = muted;
   const prefix = sharedObjectPrefix(url);
+  const fileSaves = game.saves === "file";
+  const tracker = useRef<PlayTracker | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -134,7 +137,8 @@ function Player({ game, swf, muted }: { game: Game; swf: Swf; muted: boolean }) 
         return;
       }
       try {
-        synced.current = await restoreSaves(game.id, prefix);
+        // File saves are loaded by the player from the save dialog instead.
+        if (!fileSaves) synced.current = await restoreSaves(game.id, prefix);
       } catch (err) {
         console.error("restore saves", err);
         if (live) {
@@ -149,7 +153,7 @@ function Player({ game, swf, muted }: { game: Game; swf: Swf; muted: boolean }) 
     return () => {
       live = false;
     };
-  }, [game.id, prefix]);
+  }, [game.id, prefix, fileSaves]);
 
   useEffect(() => {
     if (state !== "playing" || !ruffle.current || !host.current) return;
@@ -175,21 +179,23 @@ function Player({ game, swf, muted }: { game: Game; swf: Swf; muted: boolean }) 
         setVolume(el, mutedNow.current ? 0 : 1);
       })
       .catch((err: unknown) => {
-      console.error("ruffle load", err);
-      setError("游戏加载失败");
-      setState("failed");
-    });
-    const tracker = trackPlay(game.id, host.current, () => mutedNow.current);
-    const stopSync = syncSaves(game.id, prefix, synced.current, tracker.saveWritten);
+        console.error("ruffle load", err);
+        setError("游戏加载失败");
+        setState("failed");
+      });
+    const play = trackPlay(game.id, host.current, () => mutedNow.current);
+    tracker.current = play;
+    const stopSync = fileSaves ? () => {} : syncSaves(game.id, prefix, synced.current, play.saveWritten);
     return () => {
       // Ruffle may flush saves as it is torn down, so sync after removing it.
       el.remove();
       player.current = null;
       loaded.current = false;
       stopSync();
-      tracker.stop();
+      play.stop();
+      tracker.current = null;
     };
-  }, [state, url, base, game.id, prefix]);
+  }, [state, url, base, game.id, prefix, fileSaves]);
 
   useEffect(() => {
     if (player.current && loaded.current) setVolume(player.current, muted ? 0 : 1);
@@ -203,7 +209,14 @@ function Player({ game, swf, muted }: { game: Game; swf: Swf; muted: boolean }) 
     case "failed":
       return <Notice title={error} detail="刷新页面再试一次" />;
     case "playing":
-      return <div ref={host} className="absolute inset-0" />;
+      return (
+        <>
+          <div ref={host} className="absolute inset-0" />
+          {fileSaves && (
+            <FileSaves game={game} onSaved={() => tracker.current?.saveWritten()} onClose={() => player.current?.focus()} />
+          )}
+        </>
+      );
   }
 }
 

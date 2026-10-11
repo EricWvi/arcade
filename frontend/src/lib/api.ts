@@ -14,6 +14,8 @@ export type Game = {
   images: Partial<Record<ImageKind, string>>;
   /** The movie to play, if the game can be played; see gameSource. */
   swf?: Swf;
+  /** How the game keeps progress; see lib/saves.ts and lib/file-saves.ts. */
+  saves?: "shared-object" | "file";
   /** How to play, from games.yaml; line breaks matter. */
   help?: string;
   /** Stands in for the images of mock games, which have none. */
@@ -102,7 +104,8 @@ async function request<T>(method: string, path: string, body?: unknown, init?: R
 export const api = {
   me: () => request<User>("GET", "/api/me"),
   catalog: () => request<Catalog>("GET", "/api/catalog"),
-  saves: (game: string) => request<{ saves: Saves }>("GET", `/api/games/${game}/saves`),
+  /** The user's saves for a game, with when each was written (unix ms). */
+  saves: (game: string) => request<{ saves: Saves; updated: Record<string, number> }>("GET", `/api/games/${game}/saves`),
   /** Writes the named saves; null deletes one. keepalive outlives the page. */
   putSaves: (game: string, saves: Record<string, string | null>, keepalive = false) =>
     request<void>("PUT", `/api/games/${game}/saves`, { saves }, { keepalive }),

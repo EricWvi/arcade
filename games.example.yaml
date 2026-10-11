@@ -16,6 +16,9 @@ shelves:
 # movie to play, relative to <games_dir>/<key>/sources; files it loads, such
 # as levels, sit beside it. Players need the Ruffle browser extension.
 # `help` says how to play and is shown beside the game; line breaks are kept.
+# `saves` is how the game keeps progress: shared-object (the default; Flash
+# SharedObjects, synced automatically) or file (the game exports and imports
+# save files, as 造梦西游 does; the page keeps them on the server).
 games:
   hot-air-1:
     title: Hot Air
@@ -26,3 +29,9 @@ games:
   zmxy-1:
     title: 造梦西游
     subtitle: 动作冒险
+    swf: 打开我开始玩.swf
+    saves: file
+    help: |
+      A / D 移动，J 攻击，K 跳跃，U / I / O / L / 空格 释放技能。
+      双人模式下玩家二用方向键移动，小键盘 1 攻击、2 跳跃。
+      在大地图点「保存游戏」存档，从「单人游戏 → 继续游戏」读档。
