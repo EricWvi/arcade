@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-import { defaultPoster, type Game } from "@/data/home";
+import defaultPoster from "@/assets/default-poster.webp";
+import type { Game } from "@/data/home";
 
 /**
  * The hero banner. Its background is the site poster until a game is
@@ -11,10 +12,18 @@ export function RecentlyPlayed({ games }: { games: Game[] }) {
 
   return (
     <section
-      className="relative isolate overflow-hidden rounded-3xl transition-colors duration-500"
-      style={{ backgroundColor: active?.tint ?? defaultPoster }}
+      className="relative isolate overflow-hidden rounded-3xl bg-[#3a2a6b] transition-colors duration-500"
+      style={active ? { backgroundColor: active.tint } : undefined}
       onMouseLeave={() => setActive(null)}
     >
+      <img
+        src={defaultPoster}
+        alt=""
+        className="absolute inset-0 -z-20 size-full object-cover transition-opacity duration-500"
+        style={{ opacity: active ? 0 : 1 }}
+      />
+      {/* Keeps the white headline and tile names readable over any poster. */}
+      <div className="absolute inset-x-0 top-0 -z-10 h-1/2 bg-gradient-to-b from-black/35 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 -z-10 h-2/3 bg-gradient-to-t from-black/60 to-transparent" />
       <div className="flex min-h-[360px] flex-col justify-between gap-10 p-6 sm:min-h-[480px] sm:p-10">
         <div className="text-white">

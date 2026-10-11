@@ -18,9 +18,6 @@ export type Shelf = {
 
 const game = (id: string, title: string, subtitle: string, tint: string): Game => ({ id, title, subtitle, tint });
 
-/** Stands in for the site's default poster behind the recently played games. */
-export const defaultPoster = "#3a2a6b";
-
 export const recentlyPlayed: Game[] = [
   game("pixel-island", "像素冒险岛", "动作冒险", "#4f8a3c"),
   game("mushroom", "蘑菇大冒险", "横版冒险", "#d4553a"),
