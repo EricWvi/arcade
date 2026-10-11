@@ -27,7 +27,7 @@ games/             → /app/games（games_dir）
 
 存档按用户存在数据库里：`GET /api/games/<key>/saves` 读取，`PUT` 写入（`{"saves": {"<名字>": "<数据>"}}`，值为 null 表示删除）。Flash 游戏的 SharedObject 由 Ruffle 写进 localStorage，前端在启动游戏前从服务器恢复，游戏运行时自动同步回去。
 
-游玩记录：每次打开游戏页算一局，前端用随机 UUID 作为 id，开局、每 30 秒、页面隐藏或离开时 `PUT /api/plays/<id>` 上报本局累计值（有效时长、全屏时长、按键数、点击数、存档写入次数等），服务器只取更大的值。有效时长只在页面可见且两分钟内有键鼠操作时累计。`GET /api/plays/recent` 返回最近玩过的 6 个游戏。
+游玩记录：每次打开游戏页算一局，前端用随机 UUID 作为 id，开局、每 30 秒、页面隐藏或离开时 `PUT /api/plays/<id>` 上报本局累计值（有效时长、全屏时长、按键数、点击数、存档写入次数等），服务器只取更大的值。有效时长只在页面可见且两分钟内有键鼠操作时累计。`GET /api/plays/recent` 返回最近玩过的 6 个游戏。采集的字段和可视化计划见 [docs/plays.md](docs/plays.md)。
 
 OIDC client secret 建议用环境变量 `ARCADE_OIDC_CLIENT_SECRET`。在 Authelia 注册回调地址 `<public_url>/auth/callback`。
 
