@@ -1,8 +1,9 @@
 import { ChevronRight } from "lucide-react";
 
-import { BlurImage } from "@/components/blur-image";
-import { gameImage } from "@/data/home";
-import type { Game, ImageKind, Shelf as ShelfData } from "@/lib/api";
+import { Link } from "wouter";
+
+import { artBackground, GameArt } from "@/components/game-art";
+import type { Game, Shelf as ShelfData } from "@/lib/api";
 
 /** A category row of game cards that scrolls sideways, three cards per view on desktop. */
 export function Shelf({ shelf }: { shelf: ShelfData }) {
@@ -10,10 +11,10 @@ export function Shelf({ shelf }: { shelf: ShelfData }) {
     <section className="border-t pt-8">
       <div className="mb-4 flex items-baseline justify-between">
         <h2 className="text-2xl font-bold tracking-tight">{shelf.title}</h2>
-        <a href={`/categories/${shelf.id}`} className="flex items-center text-sm text-accent hover:underline">
+        <Link href={`/categories/${shelf.id}`} className="flex items-center text-sm text-accent hover:underline">
           查看全部
           <ChevronRight className="size-4" />
-        </a>
+        </Link>
       </div>
       <ul className="-mx-4 grid snap-x snap-mandatory auto-cols-[85%] grid-flow-col gap-6 overflow-x-auto scroll-px-4 px-4 pb-2 [scrollbar-width:none] sm:-mx-6 sm:auto-cols-[calc((100%-1.5rem)/2)] sm:scroll-px-6 sm:px-6 lg:-mx-8 lg:auto-cols-[calc((100%-3rem)/3)] lg:scroll-px-8 lg:px-8">
         {shelf.games.map((g) => (
@@ -29,37 +30,29 @@ export function Shelf({ shelf }: { shelf: ShelfData }) {
 function GameCard({ game }: { game: Game }) {
   return (
     <article>
-      <a
+      <Link
         href={`/games/${game.id}`}
         className="relative block aspect-[16/10] overflow-hidden rounded-2xl"
-        style={{ backgroundColor: game.tint ?? "var(--surface)" }}
+        style={{ backgroundColor: artBackground(game) }}
         aria-label={game.title}
       >
-        <Art game={game} kind="card" />
-      </a>
+        <GameArt game={game} kind="card" />
+      </Link>
       <div className="mt-4 flex items-center gap-4">
         <span
           className="relative size-16 shrink-0 overflow-hidden rounded-2xl"
-          style={{ backgroundColor: game.tint ? `color-mix(in srgb, ${game.tint} 75%, black)` : "var(--surface)" }}
+          style={{ backgroundColor: artBackground(game, true) }}
         >
-          <Art game={game} kind="icon" />
+          <GameArt game={game} kind="icon" />
         </span>
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-lg font-semibold">{game.title}</h3>
           <p className="truncate text-sm text-muted">{game.subtitle}</p>
         </div>
-        <a href={`/games/${game.id}`} className="shrink-0 rounded-full bg-pill px-5 py-1.5 text-sm font-bold text-accent">
+        <Link href={`/games/${game.id}`} className="shrink-0 rounded-full bg-pill px-5 py-1.5 text-sm font-bold text-accent">
           开始
-        </a>
+        </Link>
       </div>
     </article>
   );
-}
-
-/** Fills its positioned parent with the game's image, if it has one; otherwise the parent's colour shows. */
-function Art({ game, kind }: { game: Game; kind: ImageKind }) {
-  const version = game.images[kind];
-  if (!version) return null;
-  const { src, placeholder } = gameImage(game.id, kind, version);
-  return <BlurImage src={src} placeholder={placeholder} alt="" className="absolute inset-0" />;
 }

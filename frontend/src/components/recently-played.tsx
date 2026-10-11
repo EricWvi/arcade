@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 
 // The placeholder is inlined so it paints with the first render.
 import defaultPosterBlur from "@/assets/default-poster.blur.webp?inline";
@@ -43,7 +44,7 @@ export function RecentlyPlayed({ games }: { games: Game[] }) {
         <ul className="-mx-6 -my-3 flex gap-3 overflow-x-auto px-6 py-3 [scrollbar-width:none] sm:-mx-10 sm:gap-5 sm:px-10">
           {games.map((g) => (
             <li key={g.id} className="shrink-0">
-              <a
+              <Link
                 href={`/games/${g.id}`}
                 className="group block w-18 text-center outline-none sm:w-22"
                 onMouseEnter={() => setActive(g)}
@@ -55,7 +56,7 @@ export function RecentlyPlayed({ games }: { games: Game[] }) {
                   style={{ backgroundColor: g.tint }}
                 />
                 <span className="mt-1.5 block truncate text-xs font-semibold text-white sm:text-sm [text-shadow:0_1px_6px_rgb(0_0_0/0.6)]">{g.title}</span>
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

@@ -1,4 +1,4 @@
-import type { Game, ImageKind, Shelf } from "@/lib/api";
+import type { Catalog, Game, ImageKind, Shelf } from "@/lib/api";
 
 /**
  * URLs of a game image and of its blurred placeholder, by the game's key.
@@ -58,3 +58,23 @@ export const mockShelves: Shelf[] = [
     ],
   },
 ];
+
+/** Every shelf the home page shows: games.yaml first, then the mock ones. */
+export const allShelves = (catalog?: Catalog): Shelf[] => [...(catalog?.shelves ?? []), ...mockShelves];
+
+/** Finds a game on any shelf, or among the recently played mocks. */
+export function findGame(shelves: Shelf[], id: string): Game | undefined {
+  for (const s of shelves) {
+    const game = s.games.find((g) => g.id === id);
+    if (game) return game;
+  }
+  return recentlyPlayed.find((g) => g.id === id);
+}
+
+/** Up to `limit` other games, those sharing a shelf with `game` first. */
+export function moreGames(shelves: Shelf[], game: Game, limit = 6): Game[] {
+  const sharing = shelves.filter((s) => s.games.some((g) => g.id === game.id));
+  const ordered = [...sharing, ...shelves.filter((s) => !sharing.includes(s))].flatMap((s) => s.games);
+  const seen = new Set([game.id]);
+  return ordered.filter((g) => !seen.has(g.id) && seen.add(g.id)).slice(0, limit);
+}

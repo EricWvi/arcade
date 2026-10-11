@@ -1,17 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { RecentlyPlayed } from "@/components/recently-played";
-import { Shelf } from "@/components/shelf";
-import { SiteFooter } from "@/components/site-footer";
+import { Route, Switch } from "wouter";
+
 import { SiteHeader } from "@/components/site-header";
-import { mockShelves, recentlyPlayed } from "@/data/home";
 import { api, goToLogin, logout } from "@/lib/api";
+import { GamePage } from "@/pages/game";
+import { HomePage } from "@/pages/home";
+import { NotFound } from "@/pages/not-found";
 
 export function App() {
   const [signedOut, setSignedOut] = useState(false);
   const me = useQuery({ queryKey: ["me"], queryFn: api.me, staleTime: Infinity, enabled: !signedOut });
-  const catalog = useQuery({ queryKey: ["catalog"], queryFn: api.catalog, enabled: !signedOut });
 
   if (signedOut) {
     return (
@@ -34,13 +34,13 @@ export function App() {
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader user={me.data} onSignOut={signOut} />
-      <main className="mx-auto w-full max-w-7xl flex-1 space-y-10 px-4 pt-6 sm:px-6 lg:px-8">
-        <RecentlyPlayed games={recentlyPlayed} />
-        {catalog.error && <p className="text-sm text-danger">{catalog.error.message}</p>}
-        {/* Mock shelves wait for the catalogue so the configured ones never jump in above them. */}
-        {!catalog.isPending && [...(catalog.data?.shelves ?? []), ...mockShelves].map((s) => <Shelf key={s.id} shelf={s} />)}
-      </main>
-      <SiteFooter />
+      <Switch>
+        <Route path="/" component={HomePage} />
+        <Route path="/games/:id">{(params) => <GamePage key={params.id} id={params.id} />}</Route>
+        <Route>
+          <NotFound />
+        </Route>
+      </Switch>
     </div>
   );
 }
