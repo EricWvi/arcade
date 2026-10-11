@@ -25,8 +25,8 @@ export default defineConfig({
     proxy: {
       "/api": backend,
       "/auth": backend,
-      // Only game images; /games/<key> itself is an app page.
-      "^/games/[^/]+/imgs/": backend,
+      // Only game images and files; /games/<key> itself is an app page.
+      "^/games/[^/]+/(imgs|sources)/": backend,
     },
   },
   build: {

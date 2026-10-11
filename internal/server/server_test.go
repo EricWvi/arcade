@@ -41,10 +41,13 @@ func newServerWith(t *testing.T, cfg auth.Config) (http.Handler, string) {
 	}
 	games := filepath.Join(t.TempDir(), "games")
 	for name, data := range map[string]string{
-		"zmxy-1/imgs/card.png":       "png",
-		"zmxy-1/imgs/card.blur.webp": "webp",
-		"zmxy-1/imgs/notes.txt":      "secret",
-		"zmxy-1/sources/game.swf":    "swf",
+		"zmxy-1/imgs/card.png":        "png",
+		"zmxy-1/imgs/card.blur.webp":  "webp",
+		"zmxy-1/imgs/notes.txt":       "secret",
+		"zmxy-1/sources/game.swf":     swfHeader,
+		"zmxy-1/sources/levels/1.swf": "level",
+		"zmxy-1/sources/page.html":    "<script>",
+		"secret.swf":                  "secret",
 	} {
 		path := filepath.Join(games, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -54,14 +57,17 @@ func newServerWith(t *testing.T, cfg auth.Config) (http.Handler, string) {
 			t.Fatal(err)
 		}
 	}
+	if err := os.Symlink(filepath.Join(games, "secret.swf"), filepath.Join(games, "zmxy-1/sources/link.swf")); err != nil {
+		t.Fatal(err)
+	}
 	cat := catalog.Catalog{
 		Shelves: []catalog.Shelf{
 			{ID: "zmxy", Title: "造梦西游系列", Games: []string{"zmxy-1"}},
 			{ID: "nitrome", Title: "Nitrome", Games: []string{"hot-air-1"}},
 		},
 		Games: map[string]catalog.Game{
-			"zmxy-1":    {Title: "造梦西游", Subtitle: "动作冒险"},
-			"hot-air-1": {Title: "Hot Air"},
+			"zmxy-1":    {Title: "造梦西游", Subtitle: "动作冒险", SWF: "game.swf"},
+			"hot-air-1": {Title: "Hot Air", SWF: "missing.swf"},
 		},
 	}
 	h, err := New(auth.New(st, cfg), web, Options{Version: "test", GamesDir: games, Catalog: cat})
@@ -70,6 +76,9 @@ func newServerWith(t *testing.T, cfg auth.Config) (http.Handler, string) {
 	}
 	return h, games
 }
+
+// swfHeader is an uncompressed movie header with a 550x400 stage.
+const swfHeader = "FWS\x08\x00\x00\x00\x00\x78\x00\x05\x5f\x00\x00\x0f\xa0\x00\x00\x0c\x01\x00"
 
 func do(h http.Handler, method, path string) *httptest.ResponseRecorder {
 	rec := httptest.NewRecorder()
@@ -131,7 +140,6 @@ func TestGameImages(t *testing.T) {
 	for _, path := range []string{
 		"/games/zmxy-1/imgs/notes.txt",
 		"/games/zmxy-1/imgs/missing.png",
-		"/games/zmxy-1/sources/game.swf",
 		"/games/..%2Fzmxy-1/imgs/card.png",
 		"/games/zmxy-1/imgs/..%2F..%2Fzmxy-1%2Fimgs%2Fcard.png",
 	} {
@@ -142,6 +150,36 @@ func TestGameImages(t *testing.T) {
 	// The game page itself is an app route.
 	if rec := do(h, "GET", "/games/zmxy-1"); rec.Code != 200 || !strings.Contains(rec.Body.String(), "app") {
 		t.Fatalf("game page: %d", rec.Code)
+	}
+}
+
+func TestGameSources(t *testing.T) {
+	h := newServer(t, auth.Config{DevUser: "eric"})
+	rec := do(h, "GET", "/games/zmxy-1/sources/game.swf?v=1")
+	if rec.Code != 200 || rec.Body.String() != swfHeader ||
+		rec.Header().Get("Content-Type") != "application/x-shockwave-flash" ||
+		rec.Header().Get("Cache-Control") != "private, max-age=31536000, immutable" {
+		t.Fatalf("movie: %d %q %s", rec.Code, rec.Body, rec.Header())
+	}
+	// Files the movie loads itself come without a version.
+	if rec := do(h, "GET", "/games/zmxy-1/sources/levels/1.swf"); rec.Code != 200 || rec.Body.String() != "level" ||
+		rec.Header().Get("Cache-Control") != "private, no-cache" {
+		t.Fatalf("level: %d %q %s", rec.Code, rec.Body, rec.Header())
+	}
+	for _, path := range []string{
+		"/games/zmxy-1/sources/page.html",
+		"/games/zmxy-1/sources/link.swf",
+		"/games/zmxy-1/sources/missing.swf",
+		"/games/zmxy-1/sources/levels",
+		"/games/zmxy-1/sources/..%2F..%2Fsecret.swf",
+		"/games/..%2Fsecret.swf/sources/x.swf",
+	} {
+		if rec := do(h, "GET", path); rec.Code != 404 {
+			t.Errorf("%s: %d %q", path, rec.Code, rec.Body)
+		}
+	}
+	if rec := do(newServer(t, auth.Config{}), "GET", "/games/zmxy-1/sources/game.swf"); rec.Code == 200 {
+		t.Fatalf("without a session: %d", rec.Code)
 	}
 }
 
@@ -161,12 +199,13 @@ func TestCatalogKeepsOrderAndListsImagesOnDisk(t *testing.T) {
 	}
 	got := catalog()
 	version := got.Shelves[0].Games[0].Images["card"]
-	if version == "" {
+	if version == "" || got.Shelves[0].Games[0].SWF == nil || got.Shelves[0].Games[0].SWF.Version == "" {
 		t.Fatalf("no card version: %+v", got)
 	}
 	want := catalogResponse{Shelves: []catalogShelf{
 		{ID: "zmxy", Title: "造梦西游系列", Games: []catalogGame{
-			{ID: "zmxy-1", Title: "造梦西游", Subtitle: "动作冒险", Images: map[string]string{"card": version}},
+			{ID: "zmxy-1", Title: "造梦西游", Subtitle: "动作冒险", Images: map[string]string{"card": version},
+				SWF: &catalogSWF{File: "game.swf", Version: got.Shelves[0].Games[0].SWF.Version, Width: 550, Height: 400}},
 		}},
 		{ID: "nitrome", Title: "Nitrome", Games: []catalogGame{
 			{ID: "hot-air-1", Title: "Hot Air", Images: map[string]string{}},

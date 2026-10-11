@@ -12,11 +12,14 @@ shelves:
 
 # Game key → details. The key is also the game's directory under games_dir:
 # <games_dir>/<key>/imgs/{icon,card,poster,background}.png, each with a
-# <kind>.blur.webp placeholder from `task images:placeholders`.
+# <kind>.blur.webp placeholder from `task images:placeholders`. `swf` is the
+# movie to play, relative to <games_dir>/<key>/sources; files it loads, such
+# as levels, sit beside it. Players need the Ruffle browser extension.
 games:
   hot-air-1:
     title: Hot Air
     subtitle: 休闲闯关
+    swf: Hot_Air.swf
   zmxy-1:
     title: 造梦西游
     subtitle: 动作冒险

@@ -41,6 +41,7 @@ func New(authn *auth.Service, web fs.FS, opts Options) (http.Handler, error) {
 	private := http.NewServeMux()
 	mux.Handle("/api/", authn.Require(private))
 	mux.Handle("GET /games/{key}/imgs/{name}", authn.Require(http.HandlerFunc(s.getGameImage)))
+	mux.Handle("GET /games/{key}/sources/{path...}", authn.Require(http.HandlerFunc(s.getGameSource)))
 	mux.Handle("/", static)
 
 	private.HandleFunc("GET /api/me", s.getMe)

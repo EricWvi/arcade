@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -42,6 +44,10 @@ type Shelf struct {
 type Game struct {
 	Title    string `yaml:"title"`
 	Subtitle string `yaml:"subtitle"`
+	// SWF is the movie to play, relative to the game's sources directory
+	// (<games_dir>/<key>/sources). Files it loads must sit in that
+	// directory too. Empty means the game cannot be played yet.
+	SWF string `yaml:"swf"`
 }
 
 // Load reads and checks the catalogue at path. A missing file returns an
@@ -71,6 +77,9 @@ func (c Catalog) validate() error {
 		}
 		if g.Title == "" {
 			return fmt.Errorf("game %q needs a title", key)
+		}
+		if g.SWF != "" && (!filepath.IsLocal(g.SWF) || filepath.Ext(g.SWF) != ".swf" || strings.ContainsRune(g.SWF, '\\')) {
+			return fmt.Errorf("game %q: swf %q must be a .swf path inside the sources directory", key, g.SWF)
 		}
 	}
 	shelves := map[string]bool{}

@@ -31,6 +31,7 @@ games:
   hot-air-1:
     title: Hot Air
     subtitle: 休闲闯关
+    swf: Hot_Air.swf
   zmxy-1:
     title: 造梦西游
 `
@@ -46,7 +47,7 @@ func TestLoad(t *testing.T) {
 			{ID: "nitrome", Title: "Nitrome", Games: []string{"hot-air-1", "zmxy-1"}},
 		},
 		Games: map[string]Game{
-			"hot-air-1": {Title: "Hot Air", Subtitle: "休闲闯关"},
+			"hot-air-1": {Title: "Hot Air", Subtitle: "休闲闯关", SWF: "Hot_Air.swf"},
 			"zmxy-1":    {Title: "造梦西游"},
 		},
 	}
@@ -78,10 +79,23 @@ func TestLoadRejectsInvalid(t *testing.T) {
 		"subtitel":                     strings.Replace(valid, "subtitle: 休闲闯关", "subtitel: 休闲闯关", 1),
 		`lists game "zmxy-1" twice`:    strings.Replace(valid, "[hot-air-1, zmxy-1]", "[zmxy-1, zmxy-1]", 1),
 		"shelf 1: id \"\"":             strings.Replace(valid, "id: zmxy", "id: \"\"", 1),
+		"inside the sources directory": strings.Replace(valid, "swf: Hot_Air.swf", "swf: ../Hot_Air.swf", 1),
 	} {
 		_, err := Load(write(t, content))
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%s: err = %v", want, err)
 		}
+	}
+}
+
+func TestLoadRejectsSWFOutsideSources(t *testing.T) {
+	for _, swf := range []string{"/abs/game.swf", "levels/../../game.swf", `levels\game.swf`, "game.html", "."} {
+		content := strings.Replace(valid, "swf: Hot_Air.swf", "swf: '"+swf+"'", 1)
+		if _, err := Load(write(t, content)); err == nil || !strings.Contains(err.Error(), "inside the sources directory") {
+			t.Errorf("swf %q: err = %v", swf, err)
+		}
+	}
+	if _, err := Load(write(t, strings.Replace(valid, "swf: Hot_Air.swf", "swf: game/main.swf", 1))); err != nil {
+		t.Errorf("nested swf: %v", err)
 	}
 }
