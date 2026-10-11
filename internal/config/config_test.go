@@ -40,6 +40,7 @@ func TestLoadOIDC(t *testing.T) {
 	want := Config{
 		Listen:    ":9000",
 		Database:  filepath.Join(filepath.Dir(path), "arcade.db"),
+		GamesDir:  filepath.Join(filepath.Dir(path), "games"),
 		PublicURL: "https://arcade.test",
 		OIDC:      OIDC{Issuer: "https://auth.test", ClientID: "arcade", ClientSecret: "secret"},
 	}
@@ -48,20 +49,24 @@ func TestLoadOIDC(t *testing.T) {
 	}
 }
 
-func TestLoadDatabasePath(t *testing.T) {
-	cfg, err := Load(write(t, "dev_user: eric\ndatabase: /var/lib/arcade.db\n"))
+func TestLoadPaths(t *testing.T) {
+	cfg, err := Load(write(t, "dev_user: eric\ndatabase: /var/lib/arcade.db\ngames_dir: /srv/games\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Database != "/var/lib/arcade.db" {
-		t.Fatalf("absolute database = %q", cfg.Database)
+	if cfg.Database != "/var/lib/arcade.db" || cfg.GamesDir != "/srv/games" {
+		t.Fatalf("absolute paths = %q, %q", cfg.Database, cfg.GamesDir)
 	}
-	path := write(t, "dev_user: eric\ndatabase: db/arcade.db\n")
+	path := write(t, "dev_user: eric\ndatabase: db/arcade.db\ngames_dir: ../games\n")
 	if cfg, err = Load(path); err != nil {
 		t.Fatal(err)
 	}
-	if want := filepath.Join(filepath.Dir(path), "db", "arcade.db"); cfg.Database != want {
+	dir := filepath.Dir(path)
+	if want := filepath.Join(dir, "db", "arcade.db"); cfg.Database != want {
 		t.Fatalf("relative database = %q, want %q", cfg.Database, want)
+	}
+	if want := filepath.Join(filepath.Dir(dir), "games"); cfg.GamesDir != want {
+		t.Fatalf("relative games_dir = %q, want %q", cfg.GamesDir, want)
 	}
 }
 
@@ -94,6 +99,7 @@ func TestLoadRejectsInvalidValues(t *testing.T) {
 	for _, content := range []string{
 		"listen: \"\"\ndev_user: eric\n",
 		"database: \"\"\ndev_user: eric\n",
+		"games_dir: \"\"\ndev_user: eric\n",
 		strings.Replace(validOIDC, "https://arcade.test", "https://arcade.test/sub", 1),
 		strings.Replace(validOIDC, "https://arcade.test", "arcade.test", 1),
 		strings.Replace(validOIDC, "  issuer: https://auth.test\n", "", 1),

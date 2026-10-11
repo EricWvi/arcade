@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -23,7 +24,22 @@ func newServer(t *testing.T, cfg auth.Config) http.Handler {
 		"index.html":          {Data: []byte("<!doctype html>app")},
 		"assets/index-abc.js": {Data: []byte("console.log(1)")},
 	}
-	h, err := New(auth.New(st, cfg), web, Options{Version: "test"})
+	games := filepath.Join(t.TempDir(), "games")
+	for name, data := range map[string]string{
+		"zmxy-1/imgs/card.png":       "png",
+		"zmxy-1/imgs/card.blur.webp": "webp",
+		"zmxy-1/imgs/notes.txt":      "secret",
+		"zmxy-1/sources/game.swf":    "swf",
+	} {
+		path := filepath.Join(games, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	h, err := New(auth.New(st, cfg), web, Options{Version: "test", GamesDir: games})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,5 +83,35 @@ func TestAPIRequiresSession(t *testing.T) {
 	}
 	if rec := do(h, "GET", "/"); rec.Code != 200 {
 		t.Fatalf("shell without session: %d", rec.Code)
+	}
+	if rec := do(h, "GET", "/games/zmxy-1/imgs/card.png"); rec.Code != http.StatusUnauthorized {
+		t.Fatalf("image without session: %d", rec.Code)
+	}
+}
+
+func TestGameImages(t *testing.T) {
+	h := newServer(t, auth.Config{DevUser: "eric"})
+	rec := do(h, "GET", "/games/zmxy-1/imgs/card.png")
+	if rec.Code != 200 || rec.Body.String() != "png" || rec.Header().Get("Content-Type") != "image/png" ||
+		rec.Header().Get("Cache-Control") != "private, no-cache" {
+		t.Fatalf("card: %d %q %s", rec.Code, rec.Body, rec.Header())
+	}
+	if rec := do(h, "GET", "/games/zmxy-1/imgs/card.blur.webp"); rec.Code != 200 || rec.Body.String() != "webp" {
+		t.Fatalf("placeholder: %d %q", rec.Code, rec.Body)
+	}
+	for _, path := range []string{
+		"/games/zmxy-1/imgs/notes.txt",
+		"/games/zmxy-1/imgs/missing.png",
+		"/games/zmxy-1/sources/game.swf",
+		"/games/..%2Fzmxy-1/imgs/card.png",
+		"/games/zmxy-1/imgs/..%2F..%2Fzmxy-1%2Fimgs%2Fcard.png",
+	} {
+		if rec := do(h, "GET", path); rec.Code != 404 {
+			t.Errorf("%s: %d %q", path, rec.Code, rec.Body)
+		}
+	}
+	// The game page itself is an app route.
+	if rec := do(h, "GET", "/games/zmxy-1"); rec.Code != 200 || !strings.Contains(rec.Body.String(), "app") {
+		t.Fatalf("game page: %d", rec.Code)
 	}
 }

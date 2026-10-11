@@ -3,6 +3,10 @@ listen: ":36753"
 # SQLite database. A relative path is resolved against the directory of
 # this file, so in the container it lands in the mounted config directory.
 database: "arcade.db"
+# One directory per game, named by its key: <games_dir>/<key>/imgs/card.png.
+# A relative path is resolved against the directory of this file.
+# In the container use "/app/games"; in local development "../games".
+games_dir: "games"
 
 # Origin browsers use to reach this site. The OIDC redirect URI is
 # <public_url>/auth/callback and must be registered with the provider.

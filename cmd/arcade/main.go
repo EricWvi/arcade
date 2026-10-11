@@ -65,7 +65,7 @@ func run(configPath string) error {
 		ClientSecret: cfg.OIDC.ClientSecret,
 		DevUser:      cfg.DevUser,
 	})
-	handler, err := server.New(authn, arcade.Frontend(), server.Options{Version: version})
+	handler, err := server.New(authn, arcade.Frontend(), server.Options{Version: version, GamesDir: cfg.GamesDir})
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func run(configPath string) error {
 
 	errc := make(chan error, 1)
 	go func() {
-		slog.Info("listening", "addr", cfg.Listen, "database", cfg.Database, "version", version)
+		slog.Info("listening", "addr", cfg.Listen, "database", cfg.Database, "games_dir", cfg.GamesDir, "version", version)
 		errc <- srv.ListenAndServe()
 	}()
 

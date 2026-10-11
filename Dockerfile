@@ -24,13 +24,14 @@ RUN go test ./...
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath \
       -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${COMMIT}" \
       -o /out/arcade ./cmd/arcade \
- && mkdir -p /out/config
+ && mkdir -p /out/config /out/games
 
 FROM gcr.io/distroless/static-debian12:nonroot
 WORKDIR /app
 COPY --from=build /out/arcade /app/arcade
-# config/ holds config.yaml and arcade.db.
+# config/ holds config.yaml and arcade.db; games/ holds the game files.
 COPY --from=build --chown=nonroot:nonroot /out/config /app/config
-VOLUME ["/app/config"]
+COPY --from=build --chown=nonroot:nonroot /out/games /app/games
+VOLUME ["/app/config", "/app/games"]
 EXPOSE 36753
 ENTRYPOINT ["/app/arcade", "-config", "/app/config/config.yaml"]

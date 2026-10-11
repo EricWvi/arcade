@@ -12,6 +12,8 @@ import (
 // Options configures the server.
 type Options struct {
 	Version string
+	// GamesDir holds one directory per game key; see getGameImage.
+	GamesDir string
 }
 
 type server struct {
@@ -35,6 +37,7 @@ func New(authn *auth.Service, web fs.FS, opts Options) (http.Handler, error) {
 	// Everything registered on private is only reachable with a session.
 	private := http.NewServeMux()
 	mux.Handle("/api/", authn.Require(private))
+	mux.Handle("GET /games/{key}/imgs/{name}", authn.Require(http.HandlerFunc(s.getGameImage)))
 	mux.Handle("/", static)
 
 	private.HandleFunc("GET /api/me", s.getMe)

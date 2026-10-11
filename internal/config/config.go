@@ -25,6 +25,10 @@ type Config struct {
 	// Database is the SQLite file. A relative path is resolved against the
 	// directory of the config file, so the database sits next to it.
 	Database string `yaml:"database"`
+	// GamesDir holds one directory per game, named by its key, e.g.
+	// games/zmxy-1/imgs/card.png. A relative path is resolved against the
+	// directory of the config file, like Database.
+	GamesDir string `yaml:"games_dir"`
 	// PublicURL is the origin browsers use to reach the site, e.g.
 	// "https://arcade.example.com". It forms the OIDC redirect URI.
 	PublicURL string `yaml:"public_url"`
@@ -46,6 +50,7 @@ func Default() Config {
 	return Config{
 		Listen:   ":36753",
 		Database: "arcade.db",
+		GamesDir: "games",
 	}
 }
 
@@ -70,6 +75,7 @@ func Load(path string) (Config, error) {
 		cfg.OIDC.ClientSecret = secret
 	}
 	cfg.Database = resolve(path, cfg.Database)
+	cfg.GamesDir = resolve(path, cfg.GamesDir)
 	return cfg, cfg.validate()
 }
 
@@ -79,6 +85,9 @@ func (c Config) validate() error {
 	}
 	if c.Database == "" {
 		return errors.New("config: database must not be empty")
+	}
+	if c.GamesDir == "" {
+		return errors.New("config: games_dir must not be empty")
 	}
 	if c.DevUser != "" {
 		return nil
