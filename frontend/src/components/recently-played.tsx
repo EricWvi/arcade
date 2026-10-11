@@ -40,7 +40,7 @@ export function RecentlyPlayed({ games }: { games: Game[] }) {
             <li key={g.id} className="shrink-0">
               <a
                 href={`/games/${g.id}`}
-                className="group block w-20 text-center outline-none sm:w-24"
+                className="group block w-18 text-center outline-none sm:w-22"
                 onMouseEnter={() => setActive(g)}
                 onFocus={() => setActive(g)}
                 onBlur={() => setActive(null)}
