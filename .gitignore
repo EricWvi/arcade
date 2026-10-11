@@ -32,7 +32,7 @@ packages/contracts/.test-dist/
 .tmp
 *.tsbuildinfo
 
-games
+/games/
 /memories
 config.yaml
 /games.yaml
