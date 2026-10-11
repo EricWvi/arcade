@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1c1c1e" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Arcade</title>
+    <!-- Paint the right background before the stylesheet arrives. -->
+    <style>
+      html { background: #ffffff; }
+      @media (prefers-color-scheme: dark) { html { background: #1c1c1e; } }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
