@@ -1,11 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { RecentlyPlayed } from "@/components/recently-played";
+import { Shelf } from "@/components/shelf";
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
+import { recentlyPlayed, shelves } from "@/data/home";
 import { api, goToLogin, logout } from "@/lib/api";
 
 export function App() {
   const [signedOut, setSignedOut] = useState(false);
-  const [error, setError] = useState("");
   const me = useQuery({ queryKey: ["me"], queryFn: api.me, staleTime: Infinity, enabled: !signedOut });
 
   if (signedOut) {
@@ -22,27 +26,20 @@ export function App() {
   }
 
   const signOut = async () => {
-    try {
-      await logout();
-      setSignedOut(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
+    await logout();
+    setSignedOut(true);
   };
 
   return (
-    <main className="grid min-h-svh place-items-center p-4 text-center">
-      {me.error ? (
-        <p className="text-sm text-danger">{me.error.message}</p>
-      ) : me.data ? (
-        <div className="space-y-4">
-          <p className="text-2xl font-medium">Hello, {me.data.name || me.data.email || "World"}!</p>
-          <button onClick={signOut} className="text-sm font-semibold text-accent">
-            退出登录
-          </button>
-          {error && <p className="text-sm text-danger">{error}</p>}
-        </div>
-      ) : null}
-    </main>
+    <div className="flex min-h-svh flex-col">
+      <SiteHeader user={me.data} onSignOut={signOut} />
+      <main className="mx-auto w-full max-w-7xl flex-1 space-y-10 px-4 pt-6 sm:px-6 lg:px-8">
+        <RecentlyPlayed games={recentlyPlayed} />
+        {shelves.map((s) => (
+          <Shelf key={s.id} shelf={s} />
+        ))}
+      </main>
+      <SiteFooter />
+    </div>
   );
 }
