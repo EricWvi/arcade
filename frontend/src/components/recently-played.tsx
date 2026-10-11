@@ -35,7 +35,8 @@ export function RecentlyPlayed({ games }: { games: Game[] }) {
           <p className="text-sm font-semibold text-white/80">最近游玩</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-5xl">{active ? active.title : "欢迎回来，继续上次的冒险"}</h1>
         </div>
-        <ul className="-mx-6 flex gap-3 overflow-x-auto px-6 pb-1 [scrollbar-width:none] sm:-mx-10 sm:gap-5 sm:px-10">
+        {/* Scrolling clips both axes; the vertical padding leaves room for the hover scale and focus ring. */}
+        <ul className="-mx-6 -my-3 flex gap-3 overflow-x-auto px-6 py-3 [scrollbar-width:none] sm:-mx-10 sm:gap-5 sm:px-10">
           {games.map((g) => (
             <li key={g.id} className="shrink-0">
               <a
