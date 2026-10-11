@@ -25,6 +25,15 @@ tasks:
     cmds:
       - go mod download
 
+  install:images:
+    desc: Create the Python venv (.tmp/venv) with Pillow for image tasks
+    status:
+      - test -x .tmp/venv/bin/python
+      - .tmp/venv/bin/python -c "import PIL"
+    cmds:
+      - python3 -m venv .tmp/venv
+      - .tmp/venv/bin/pip install --quiet pillow==12.3.0
+
   ###################################################
   ############## Clean and Build Tasks ##############
   ###################################################
@@ -96,6 +105,12 @@ tasks:
     desc: Run Go unit and HTTP tests
     cmds:
       - go test ./...
+
+  images:placeholders:
+    desc: "Write blurred <name>.blur.webp placeholders (default: games/*/imgs; or task images:placeholders -- PATH...)"
+    deps: [install:images]
+    cmds:
+      - .tmp/venv/bin/python -I scripts/lqip.py {{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}games/*/imgs{{end}}
 
   ###################################################
   ############# Run Development Servers #############

@@ -12,3 +12,4 @@ considering a change complete.
 - Go tests: `task test:go`
 - All lint and unit tests: `task test`
 - Release binary: `task build`
+- Blurred image placeholders: `task images:placeholders -- PATH...` (Pillow in `.tmp/venv`)
