@@ -1,0 +1,22 @@
+# The games the site offers and how the home page shows them. This file sits
+# next to config.yaml; restart arcade after editing it.
+
+# Home page rows, top to bottom. Each row lists game keys, left to right.
+shelves:
+  - id: nitrome
+    title: Nitrome
+    games: [hot-air-1]
+  - id: zmxy
+    title: 造梦西游系列
+    games: [zmxy-1]
+
+# Game key → details. The key is also the game's directory under games_dir:
+# <games_dir>/<key>/imgs/{icon,card,poster,background}.png, each with a
+# <kind>.blur.webp placeholder from `task images:placeholders`.
+games:
+  hot-air-1:
+    title: Hot Air
+    subtitle: 休闲闯关
+  zmxy-1:
+    title: 造梦西游
+    subtitle: 动作冒险

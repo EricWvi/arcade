@@ -1,15 +1,18 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"testing/fstest"
 
 	"arcade/internal/auth"
+	"arcade/internal/catalog"
 	"arcade/internal/store"
 )
 
@@ -39,7 +42,17 @@ func newServer(t *testing.T, cfg auth.Config) http.Handler {
 			t.Fatal(err)
 		}
 	}
-	h, err := New(auth.New(st, cfg), web, Options{Version: "test", GamesDir: games})
+	cat := catalog.Catalog{
+		Shelves: []catalog.Shelf{
+			{ID: "zmxy", Title: "造梦西游系列", Games: []string{"zmxy-1"}},
+			{ID: "nitrome", Title: "Nitrome", Games: []string{"hot-air-1"}},
+		},
+		Games: map[string]catalog.Game{
+			"zmxy-1":    {Title: "造梦西游", Subtitle: "动作冒险"},
+			"hot-air-1": {Title: "Hot Air"},
+		},
+	}
+	h, err := New(auth.New(st, cfg), web, Options{Version: "test", GamesDir: games, Catalog: cat})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,6 +100,9 @@ func TestAPIRequiresSession(t *testing.T) {
 	if rec := do(h, "GET", "/games/zmxy-1/imgs/card.png"); rec.Code != http.StatusUnauthorized {
 		t.Fatalf("image without session: %d", rec.Code)
 	}
+	if rec := do(h, "GET", "/api/catalog"); rec.Code != http.StatusUnauthorized {
+		t.Fatalf("catalog without session: %d", rec.Code)
+	}
 }
 
 func TestGameImages(t *testing.T) {
@@ -113,5 +129,28 @@ func TestGameImages(t *testing.T) {
 	// The game page itself is an app route.
 	if rec := do(h, "GET", "/games/zmxy-1"); rec.Code != 200 || !strings.Contains(rec.Body.String(), "app") {
 		t.Fatalf("game page: %d", rec.Code)
+	}
+}
+
+func TestCatalogKeepsOrderAndListsImagesOnDisk(t *testing.T) {
+	h := newServer(t, auth.Config{DevUser: "eric"})
+	rec := do(h, "GET", "/api/catalog")
+	if rec.Code != 200 {
+		t.Fatalf("catalog: %d %s", rec.Code, rec.Body)
+	}
+	var got catalogResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	want := catalogResponse{Shelves: []catalogShelf{
+		{ID: "zmxy", Title: "造梦西游系列", Games: []catalogGame{
+			{ID: "zmxy-1", Title: "造梦西游", Subtitle: "动作冒险", Images: []string{"card"}},
+		}},
+		{ID: "nitrome", Title: "Nitrome", Games: []catalogGame{
+			{ID: "hot-air-1", Title: "Hot Air", Images: []string{}},
+		}},
+	}}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %+v, want %+v", got, want)
 	}
 }

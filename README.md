@@ -13,13 +13,14 @@ Go + SQLite（无 CGO），前端（Vite + React + Tailwind）embed 进二进制
 ```
 config/            → /app/config
 ├─ config.yaml
+├─ games.yaml      # 游戏目录：分区、游戏标题和首页展示顺序，见 games.example.yaml，修改后重启
 └─ arcade.db       # 自动创建，位置由 database 决定（相对路径以 config.yaml 所在目录为准）
 games/             → /app/games（games_dir）
 └─ zmxy-1/         # 目录名是游戏 key，前端按 key 拼图片地址
    └─ imgs/        # icon、card、poster、background 原图，以及 task images:placeholders 生成的 *.blur.webp
 ```
 
-容器内的 `config.yaml` 应设置 `games_dir: "/app/games"`。图片通过 `GET /games/<key>/imgs/<name>` 提供，需要登录。
+容器内的 `config.yaml` 应设置 `games_dir: "/app/games"`。前端通过 `GET /api/catalog` 拿到 games.yaml 里的分区和游戏（含磁盘上已有的图片种类），再按 key 请求 `GET /games/<key>/imgs/<name>`，都需要登录。
 
 OIDC client secret 建议用环境变量 `ARCADE_OIDC_CLIENT_SECRET`。在 Authelia 注册回调地址 `<public_url>/auth/callback`。
 
@@ -43,6 +44,7 @@ Caddy 把 arcade 的域名反代到 `arcade:36753`；arcade 自己做 OIDC 登�
 ```bash
 task install:frontend
 mkdir -p .data && cp config.example.yaml .data/config.yaml   # 设置 dev_user 跳过 OIDC，games_dir 改为 "../games"
+cp games.example.yaml .data/games.yaml
 task run:server                      # 终端 1，arcade.db 在 .data 下
 task run:web                         # 终端 2，打开 http://localhost:5173
 ```

@@ -35,3 +35,4 @@ packages/contracts/.test-dist/
 games
 /memories
 config.yaml
+/games.yaml

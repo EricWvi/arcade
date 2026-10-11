@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"arcade/internal/auth"
+	"arcade/internal/catalog"
 )
 
 // Options configures the server.
@@ -14,6 +15,8 @@ type Options struct {
 	Version string
 	// GamesDir holds one directory per game key; see getGameImage.
 	GamesDir string
+	// Catalog is games.yaml, served by GET /api/catalog.
+	Catalog catalog.Catalog
 }
 
 type server struct {
@@ -41,6 +44,7 @@ func New(authn *auth.Service, web fs.FS, opts Options) (http.Handler, error) {
 	mux.Handle("/", static)
 
 	private.HandleFunc("GET /api/me", s.getMe)
+	private.HandleFunc("GET /api/catalog", s.getCatalog)
 	private.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "接口不存在")
 	})

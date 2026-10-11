@@ -6,15 +6,18 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"arcade"
 	"arcade/internal/auth"
+	"arcade/internal/catalog"
 	"arcade/internal/config"
 	"arcade/internal/server"
 	"arcade/internal/store"
@@ -46,6 +49,14 @@ func run(configPath string) error {
 	if err != nil {
 		return err
 	}
+	// games.yaml sits next to the config file; restart to apply edits.
+	catalogPath := filepath.Join(filepath.Dir(configPath), catalog.FileName)
+	games, err := catalog.Load(catalogPath)
+	if errors.Is(err, fs.ErrNotExist) {
+		slog.Warn("no games catalogue: the home page shows no configured games", "path", catalogPath)
+	} else if err != nil {
+		return err
+	}
 	st, err := store.Open(cfg.Database)
 	if err != nil {
 		return err
@@ -65,7 +76,7 @@ func run(configPath string) error {
 		ClientSecret: cfg.OIDC.ClientSecret,
 		DevUser:      cfg.DevUser,
 	})
-	handler, err := server.New(authn, arcade.Frontend(), server.Options{Version: version, GamesDir: cfg.GamesDir})
+	handler, err := server.New(authn, arcade.Frontend(), server.Options{Version: version, GamesDir: cfg.GamesDir, Catalog: games})
 	if err != nil {
 		return err
 	}
