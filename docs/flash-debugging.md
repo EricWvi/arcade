@@ -98,6 +98,39 @@ $JAVA -Djava.awt.headless=true -jar $S/dl-ffdec/ffdec/ffdec.jar -export script <
 
 Hot Air 是 AS2/AVM1 游戏，JPEXS 不是必需的。我用一个小 Python 脚本遍历 tag：DefineShape 读边界，PlaceObject2 读深度、角色 id、矩阵和实例名，DefineSprite 递归处理，再逐帧模拟显示列表，找出覆盖舞台某个点的对象。左上角的白块就是这样查出来的：它是最上层深度 284 的 `curves_clip`，一张带白色圆角的位图边框。这个问题目前还没有处理。
 
+### 修改 swf：用 P-code 只改目标方法
+
+需要改游戏逻辑时（例如恢复造梦西游 1 的法宝说明），**不要用 `-replace` 替换 AS 源码**。它会把整个类反编译再重新编译，带来额外差异：实测省略了给 `int` 局部变量赋值时的 `int()` 转换（AVM2 不会自动转换，变量里可能存进小数），构造函数里的 `initproperty` 变成了 `setproperty`，参数默认值从 `Double(0)` 变成 `Integer(0)`，还加了调试信息。
+
+改用 P-code（AVM2 汇编）只替换要改的方法体：
+
+1. **查 method body index**（要在**原始** swf 上查，一次命令里改多个方法也都用原始编号）：
+
+   ```sh
+   $JAVA -jar ffdec.jar -config showMethodBodyId=1 -selectclass my.FallEquipObj -export script out in.swf
+   # 导出的 .as 里每个方法开头有注释：// method body index: 1410 method index: 1410
+   ```
+
+2. **导出 P-code**：
+
+   ```sh
+   $JAVA -jar ffdec.jar -format script:pcode -selectclass my.FallEquipObj,export.monster.Monster24 -export script pc in.swf
+   ```
+
+3. **截出方法块**：从目标方法的 `method` 行到同缩进的 `end ; method`，去掉缩进存成文件，在需要的位置插入指令。插入的 Multiname 可以照抄同一方法里已有指令的命名空间集合。新增局部变量要同时调大 `localcount`，栈变深要调大 `maxstack`。不能用 `newfunction` 新建闭包（会新增方法），需要的逻辑直接内联，例如用 `dup / pushbyte 10 / ifge` 实现补零。
+
+4. **替换**：
+
+   ```sh
+   $JAVA -jar ffdec.jar -replace in.swf out.swf \
+     my.FallEquipObj colwho.pcode 1410 \
+     export.monster.Monster24 toDead.pcode 1569 \
+     my.MyEquipObj getTime.pcode 313
+   ```
+
+5. **验证**：把原版和补丁版都导出成 P-code，`diff -r`。应该只有目标类不同；把 `ofs…` 标签统一替换掉后，剩下的差异只应是插入的指令。
+6. **触发很难走到的代码**：另做一个仅供测试的变体，在容易执行到的地方（例如构造函数末尾）调用目标方法，并 `trace` 出结果，用 `logLevel: "info"` 在控制台确认它能通过校验、结果正确。测试变体用完即删。
+
 ## 三、在无头浏览器里测试
 
 ### 起一个自己的后端
@@ -199,6 +232,8 @@ await page.mouse.click(gx + x * scale, gy + y * scale);
 1. **入口 swf 里谁调用了**：在反编译结果里 grep 调用处，排除只有函数定义、没有调用的死代码。
 2. **资源 swf 里的同名类会不会生效**：看加载方式。`Aloader` 用 `loadBytes(…, new LoaderContext(false, ApplicationDomain.currentDomain))`，所有 swf 都进同一个域。Flash 的规则是同名类先定义的生效，所以运行的是入口 swf 里的版本。
 3. **请求了才算**：最后以测试时的 `request` 事件为准。
+
+SAV 版删掉了法宝说明「于某时间击败龙王获得此法宝」的两处调用，所以这个接口实际不会被请求。后来按上面的 P-code 方法补回了这两处调用，时间改为直接取玩家本地时间，不再联网。
 
 ## 五、注意事项
 
