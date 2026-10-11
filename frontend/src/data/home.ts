@@ -1,9 +1,13 @@
 import type { Game, ImageKind, Shelf } from "@/lib/api";
 
-/** URLs of a game image and of its blurred placeholder, by the game's key. */
-export const gameImage = (id: string, kind: ImageKind) => ({
-  src: `/games/${id}/imgs/${kind}.png`,
-  placeholder: `/games/${id}/imgs/${kind}.blur.webp`,
+/**
+ * URLs of a game image and of its blurred placeholder, by the game's key.
+ * The version from the catalogue changes with the files, so the server
+ * lets browsers cache these URLs forever.
+ */
+export const gameImage = (id: string, kind: ImageKind, version: string) => ({
+  src: `/games/${id}/imgs/${kind}.png?v=${version}`,
+  placeholder: `/games/${id}/imgs/${kind}.blur.webp?v=${version}`,
 });
 
 /*
@@ -17,7 +21,7 @@ const game = (id: string, title: string, subtitle: string, tint: string): Game =
   title,
   subtitle,
   tint,
-  images: [],
+  images: {},
 });
 
 export const recentlyPlayed: Game[] = [

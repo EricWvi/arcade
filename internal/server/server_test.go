@@ -18,6 +18,18 @@ import (
 
 func newServer(t *testing.T, cfg auth.Config) http.Handler {
 	t.Helper()
+	h, _ := newServerWith(t, cfg)
+	return h
+}
+
+func newServerWithGames(t *testing.T) (http.Handler, string) {
+	t.Helper()
+	return newServerWith(t, auth.Config{DevUser: "eric"})
+}
+
+// newServerWith also returns the games directory, so tests can change files.
+func newServerWith(t *testing.T, cfg auth.Config) (http.Handler, string) {
+	t.Helper()
 	st, err := store.Open(filepath.Join(t.TempDir(), "arcade.db"))
 	if err != nil {
 		t.Fatal(err)
@@ -56,7 +68,7 @@ func newServer(t *testing.T, cfg auth.Config) http.Handler {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return h
+	return h, games
 }
 
 func do(h http.Handler, method, path string) *httptest.ResponseRecorder {
@@ -112,8 +124,9 @@ func TestGameImages(t *testing.T) {
 		rec.Header().Get("Cache-Control") != "private, no-cache" {
 		t.Fatalf("card: %d %q %s", rec.Code, rec.Body, rec.Header())
 	}
-	if rec := do(h, "GET", "/games/zmxy-1/imgs/card.blur.webp"); rec.Code != 200 || rec.Body.String() != "webp" {
-		t.Fatalf("placeholder: %d %q", rec.Code, rec.Body)
+	if rec := do(h, "GET", "/games/zmxy-1/imgs/card.blur.webp?v=1"); rec.Code != 200 || rec.Body.String() != "webp" ||
+		rec.Header().Get("Cache-Control") != "private, max-age=31536000, immutable" {
+		t.Fatalf("versioned placeholder: %d %q %s", rec.Code, rec.Body, rec.Header())
 	}
 	for _, path := range []string{
 		"/games/zmxy-1/imgs/notes.txt",
@@ -133,24 +146,46 @@ func TestGameImages(t *testing.T) {
 }
 
 func TestCatalogKeepsOrderAndListsImagesOnDisk(t *testing.T) {
-	h := newServer(t, auth.Config{DevUser: "eric"})
-	rec := do(h, "GET", "/api/catalog")
-	if rec.Code != 200 {
-		t.Fatalf("catalog: %d %s", rec.Code, rec.Body)
+	h, games := newServerWithGames(t)
+	catalog := func() catalogResponse {
+		t.Helper()
+		rec := do(h, "GET", "/api/catalog")
+		if rec.Code != 200 {
+			t.Fatalf("catalog: %d %s", rec.Code, rec.Body)
+		}
+		var got catalogResponse
+		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+			t.Fatal(err)
+		}
+		return got
 	}
-	var got catalogResponse
-	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
-		t.Fatal(err)
+	got := catalog()
+	version := got.Shelves[0].Games[0].Images["card"]
+	if version == "" {
+		t.Fatalf("no card version: %+v", got)
 	}
 	want := catalogResponse{Shelves: []catalogShelf{
 		{ID: "zmxy", Title: "造梦西游系列", Games: []catalogGame{
-			{ID: "zmxy-1", Title: "造梦西游", Subtitle: "动作冒险", Images: []string{"card"}},
+			{ID: "zmxy-1", Title: "造梦西游", Subtitle: "动作冒险", Images: map[string]string{"card": version}},
 		}},
 		{ID: "nitrome", Title: "Nitrome", Games: []catalogGame{
-			{ID: "hot-air-1", Title: "Hot Air", Images: []string{}},
+			{ID: "hot-air-1", Title: "Hot Air", Images: map[string]string{}},
 		}},
 	}}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %+v, want %+v", got, want)
+	}
+
+	// Replacing either the image or its placeholder gives a new version.
+	for _, name := range []string{"card.png", "card.blur.webp"} {
+		path := filepath.Join(games, "zmxy-1", "imgs", name)
+		if err := os.WriteFile(path, []byte("replaced "+name), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		next := catalog().Shelves[0].Games[0].Images["card"]
+		if next == version {
+			t.Fatalf("version unchanged after replacing %s", name)
+		}
+		version = next
 	}
 }

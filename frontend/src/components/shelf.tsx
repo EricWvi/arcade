@@ -58,7 +58,8 @@ function GameCard({ game }: { game: Game }) {
 
 /** Fills its positioned parent with the game's image, if it has one; otherwise the parent's colour shows. */
 function Art({ game, kind }: { game: Game; kind: ImageKind }) {
-  if (!game.images.includes(kind)) return null;
-  const { src, placeholder } = gameImage(game.id, kind);
+  const version = game.images[kind];
+  if (!version) return null;
+  const { src, placeholder } = gameImage(game.id, kind, version);
   return <BlurImage src={src} placeholder={placeholder} alt="" className="absolute inset-0" />;
 }

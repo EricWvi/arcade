@@ -10,8 +10,8 @@ export type Game = {
   id: string;
   title: string;
   subtitle: string;
-  /** Image kinds that exist on the server; see gameImage. */
-  images: ImageKind[];
+  /** Version of each image that exists on the server; see gameImage. */
+  images: Partial<Record<ImageKind, string>>;
   /** Stands in for the images of mock games, which have none. */
   tint?: string;
 };

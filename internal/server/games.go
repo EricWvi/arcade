@@ -1,6 +1,8 @@
 package server
 
 import (
+	"fmt"
+	"hash/fnv"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -31,8 +33,9 @@ type catalogGame struct {
 	ID       string `json:"id"`
 	Title    string `json:"title"`
 	Subtitle string `json:"subtitle"`
-	// Images lists the kinds found on disk; the frontend builds their URLs.
-	Images []string `json:"images"`
+	// Images maps each kind found on disk to its version. The frontend
+	// builds the URLs and appends ?v=<version> so they can be cached forever.
+	Images map[string]string `json:"images"`
 }
 
 // getCatalog returns the home page shelves from games.yaml, in order. Images
@@ -51,18 +54,29 @@ func (s *server) getCatalog(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
-func (s *server) images(key string) []string {
-	found := []string{}
+// images finds a game's images. A version changes whenever the image or its
+// blurred placeholder is replaced, since both share it.
+func (s *server) images(key string) map[string]string {
+	found := map[string]string{}
+	dir := filepath.Join(s.opts.GamesDir, key, "imgs")
 	for _, kind := range imageKinds {
-		if info, err := os.Stat(filepath.Join(s.opts.GamesDir, key, "imgs", kind+".png")); err == nil && info.Mode().IsRegular() {
-			found = append(found, kind)
+		info, err := os.Stat(filepath.Join(dir, kind+".png"))
+		if err != nil || !info.Mode().IsRegular() {
+			continue
 		}
+		h := fnv.New64a()
+		fmt.Fprint(h, info.ModTime().UnixNano(), info.Size())
+		if blur, err := os.Stat(filepath.Join(dir, kind+".blur.webp")); err == nil {
+			fmt.Fprint(h, blur.ModTime().UnixNano(), blur.Size())
+		}
+		found[kind] = fmt.Sprintf("%x", h.Sum64())
 	}
 	return found
 }
 
 // getGameImage serves <games_dir>/<key>/imgs/<name>. Images may be replaced
-// in place, so browsers revalidate them with Last-Modified on every use.
+// in place: a versioned URL (?v=, from the catalogue) changes with the file
+// and is cached forever, while a bare URL is revalidated on every use.
 func (s *server) getGameImage(w http.ResponseWriter, r *http.Request) {
 	key, name := r.PathValue("key"), r.PathValue("name")
 	if !catalog.ValidKey(key) || !imageName.MatchString(name) {
@@ -75,7 +89,11 @@ func (s *server) getGameImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h := w.Header()
-	h.Set("Cache-Control", "private, no-cache")
+	if r.URL.Query().Has("v") {
+		h.Set("Cache-Control", "private, max-age=31536000, immutable")
+	} else {
+		h.Set("Cache-Control", "private, no-cache")
+	}
 	h.Set("X-Content-Type-Options", "nosniff")
 	http.ServeFile(w, r, file)
 }
