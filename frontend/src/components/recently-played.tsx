@@ -22,11 +22,15 @@ export function RecentlyPlayed({ games }: { games: Game[] }) {
         className="absolute inset-0 -z-20 size-full object-cover transition-opacity duration-500"
         style={{ opacity: active ? 0 : 1 }}
       />
-      {/* Keeps the white headline and tile names readable over any poster. */}
-      <div className="absolute inset-x-0 top-0 -z-10 h-1/2 bg-gradient-to-b from-black/35 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 -z-10 h-2/3 bg-gradient-to-t from-black/60 to-transparent" />
+      {/*
+        Keeps the white headline and tile names readable over any poster.
+        Light pages get a lighter scrim so the poster stays bright; text
+        shadows make up the difference.
+      */}
+      <div className="absolute inset-x-0 top-0 -z-10 h-1/2 bg-gradient-to-b from-black/15 to-transparent dark:from-black/35" />
+      <div className="absolute inset-x-0 bottom-0 -z-10 h-1/2 bg-gradient-to-t from-black/40 to-transparent dark:h-2/3 dark:from-black/60" />
       <div className="flex min-h-[360px] flex-col justify-between gap-10 p-6 sm:min-h-[480px] sm:p-10">
-        <div className="text-white">
+        <div className="text-white [text-shadow:0_1px_12px_rgb(0_0_0/0.45)]">
           <p className="text-sm font-semibold text-white/80">最近游玩</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-5xl">{active ? active.title : "欢迎回来，继续上次的冒险"}</h1>
         </div>
@@ -44,7 +48,7 @@ export function RecentlyPlayed({ games }: { games: Game[] }) {
                   className="block aspect-square rounded-xl border-2 border-white/90 shadow-lg transition-transform duration-200 group-hover:scale-105 group-focus-visible:scale-105 group-focus-visible:ring-4 group-focus-visible:ring-white/60"
                   style={{ backgroundColor: g.tint }}
                 />
-                <span className="mt-1.5 block truncate text-xs font-semibold text-white sm:text-sm">{g.title}</span>
+                <span className="mt-1.5 block truncate text-xs font-semibold text-white sm:text-sm [text-shadow:0_1px_6px_rgb(0_0_0/0.6)]">{g.title}</span>
               </a>
             </li>
           ))}
