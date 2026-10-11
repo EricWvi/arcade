@@ -58,19 +58,19 @@ function Playfield({ game, more }: { game: Game; more: Game[] }) {
               <GameArt game={game} kind="icon" />
             </span>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1">
-                <h1 className="truncate text-xl font-bold tracking-tight">{game.title}</h1>
-                {game.swf && <SoundBell muted={muted} onToggle={() => setMuted(!muted)} />}
-              </div>
+              <h1 className="truncate text-xl font-bold tracking-tight">{game.title}</h1>
               <p className="truncate text-sm text-muted">{game.subtitle}</p>
             </div>
-            <button
-              onClick={() => stage.current?.requestFullscreen()}
-              className="flex shrink-0 items-center gap-1.5 rounded-full bg-pill px-4 py-1.5 text-sm font-bold text-accent"
-            >
-              <Maximize className="size-4" />
-              全屏
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              {game.swf && <SoundBell muted={muted} onToggle={() => setMuted(!muted)} />}
+              <button
+                onClick={() => stage.current?.requestFullscreen()}
+                className="flex shrink-0 items-center gap-1.5 rounded-full bg-pill px-4 py-1.5 text-sm font-bold text-accent"
+              >
+                <Maximize className="size-4" />
+                全屏
+              </button>
+            </div>
           </header>
           <Stage ref={stage} game={game} muted={muted} />
         </section>
@@ -224,8 +224,9 @@ function useMuted() {
 }
 
 /**
- * Turns game sound on and off. Like YouTube's subscribe bell, turning it
- * on rings the bell and muting pops it; each click replays the animation.
+ * Turns game sound on and off, as a pill beside the full screen button.
+ * Like YouTube's subscribe bell, turning sound on rings the bell inside a
+ * ripple and muting pops it; each click replays the animation.
  */
 function SoundBell({ muted, onToggle }: { muted: boolean; onToggle: () => void }) {
   const [clicks, setClicks] = useState(0);
@@ -236,18 +237,22 @@ function SoundBell({ muted, onToggle }: { muted: boolean; onToggle: () => void }
         setClicks((n) => n + 1);
         onToggle();
       }}
-      aria-pressed={!muted}
-      aria-label={muted ? "打开声音" : "静音"}
-      title={muted ? "打开声音" : "静音"}
-      className="relative grid size-8 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-surface hover:text-foreground"
+      aria-pressed={muted}
+      className={`flex shrink-0 items-center gap-1.5 rounded-full bg-pill px-4 py-1.5 text-sm font-bold ${muted ? "text-muted" : "text-accent"}`}
     >
-      {clicks > 0 && !muted && (
-        <span key={`ripple-${clicks}`} className="absolute inset-0 rounded-full bg-accent motion-safe:animate-bell-ripple motion-reduce:hidden" />
-      )}
-      <Icon
-        key={clicks}
-        className={`relative size-5 origin-top ${muted ? "" : "text-foreground"} ${clicks === 0 ? "" : muted ? "motion-safe:animate-bell-pop" : "motion-safe:animate-bell-ring"}`}
-      />
+      <span className="relative grid size-4 place-items-center">
+        {clicks > 0 && !muted && (
+          <span
+            key={`ripple-${clicks}`}
+            className="absolute -inset-1.5 rounded-full bg-accent motion-safe:animate-bell-ripple motion-reduce:hidden"
+          />
+        )}
+        <Icon
+          key={clicks}
+          className={`relative size-4 origin-top ${clicks === 0 ? "" : muted ? "motion-safe:animate-bell-pop" : "motion-safe:animate-bell-ring"}`}
+        />
+      </span>
+      {muted ? "静音" : "声音"}
     </button>
   );
 }
