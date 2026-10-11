@@ -1,4 +1,4 @@
-import { Bell, BellOff, Maximize } from "lucide-react";
+import { Bell, BellOff, Maximize, PanelRight, RectangleHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 
@@ -35,7 +35,11 @@ export function GamePage({ id }: { id: string }) {
  */
 function Playfield({ game, more }: { game: Game; more: Game[] }) {
   const stage = useRef<HTMLDivElement>(null);
-  const [muted, setMuted] = useMuted();
+  const [muted, setMuted] = useStoredFlag("arcade:muted");
+  // Theater mode gives the game the full width on large screens, with the
+  // other panels moved below it.
+  const [theater, setTheater] = useStoredFlag("arcade:theater");
+  const ratio = stageRatio(game);
 
   useEffect(() => {
     document.title = `${game.title} - Arcade`;
@@ -53,7 +57,13 @@ function Playfield({ game, more }: { game: Game; more: Game[] }) {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgb(0_0_0/0.35))] dark:bg-black/30 dark:bg-[radial-gradient(ellipse_at_center,rgb(0_0_0/0.2)_35%,rgb(0_0_0/0.6))]" />
       </div>
 
-      <div className="mx-auto grid max-w-7xl items-start gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:px-8 lg:py-10">
+      <div
+        style={{ "--ratio": ratio } as React.CSSProperties}
+        className={`mx-auto grid max-w-7xl items-start gap-6 px-4 py-6 sm:px-6 lg:px-8 ${
+          // As wide as the stage can be at this height, plus the side padding.
+          theater ? "lg:max-w-[calc((100svh-12rem)*var(--ratio)+4rem)] lg:py-4" : "lg:grid-cols-[minmax(0,1fr)_18rem] lg:py-10"
+        }`}
+      >
         <section className="overflow-hidden rounded-3xl bg-background/90 shadow-2xl ring-1 ring-black/5 backdrop-blur-xl dark:ring-white/10">
           <header className="flex items-center gap-4 p-4 sm:px-6">
             <span className="relative size-14 shrink-0 overflow-hidden rounded-2xl" style={{ backgroundColor: artBackground(game, true) }}>
@@ -65,6 +75,15 @@ function Playfield({ game, more }: { game: Game; more: Game[] }) {
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {game.swf && <SoundBell muted={muted} onToggle={() => setMuted(!muted)} />}
+              {/* Below lg the panels already stack, so there is nothing to widen. */}
+              <button
+                onClick={() => setTheater(!theater)}
+                aria-pressed={theater}
+                className="hidden shrink-0 items-center gap-1.5 rounded-full bg-pill px-4 py-1.5 text-sm font-bold text-accent lg:flex"
+              >
+                {theater ? <PanelRight className="size-4" /> : <RectangleHorizontal className="size-4" />}
+                {theater ? "窄屏" : "宽屏"}
+              </button>
               <button
                 onClick={() => stage.current?.requestFullscreen()}
                 className="flex shrink-0 items-center gap-1.5 rounded-full bg-pill px-4 py-1.5 text-sm font-bold text-accent"
@@ -74,10 +93,10 @@ function Playfield({ game, more }: { game: Game; more: Game[] }) {
               </button>
             </div>
           </header>
-          <Stage ref={stage} game={game} muted={muted} />
+          <Stage ref={stage} game={game} muted={muted} theater={theater} />
         </section>
 
-        <div className="space-y-6">
+        <div className={`space-y-6 ${theater ? "lg:grid lg:grid-cols-2 lg:items-start lg:gap-6 lg:space-y-0" : ""}`}>
           <MoreGames games={more} />
           {game.help && <Help text={game.help} />}
         </div>
@@ -86,18 +105,24 @@ function Playfield({ game, more }: { game: Game; more: Game[] }) {
   );
 }
 
+/** The movie's aspect ratio, or 4:3 until it is known. */
+const stageRatio = (game: Game) => (game.swf?.width && game.swf.height ? game.swf.width / game.swf.height : 4 / 3);
+
 /**
  * Where the game runs, in the Ruffle extension. The stage keeps the movie's
  * aspect ratio and is capped so the whole panel fits the window (or the
  * screen, in full screen), letterboxed in black.
  */
-function Stage({ ref, game, muted }: { ref: React.Ref<HTMLDivElement>; game: Game; muted: boolean }) {
-  const ratio = game.swf?.width && game.swf.height ? game.swf.width / game.swf.height : 4 / 3;
+function Stage({ ref, game, muted, theater }: { ref: React.Ref<HTMLDivElement>; game: Game; muted: boolean; theater: boolean }) {
+  const ratio = stageRatio(game);
   return (
     <div ref={ref} className="flex items-center bg-black">
       <div
         style={{ "--ratio": ratio, aspectRatio: ratio } as React.CSSProperties}
-        className="relative mx-auto w-full max-w-[calc((100svh-17rem)*var(--ratio))] min-w-0 overflow-hidden [:fullscreen>&]:max-w-[calc(100svh*var(--ratio))]"
+        className={`relative mx-auto w-full max-w-[calc((100svh-17rem)*var(--ratio))] min-w-0 overflow-hidden [:fullscreen>&]:max-w-[calc(100svh*var(--ratio))] ${
+          // Theater mode trims the page's vertical padding, leaving more height.
+          theater ? "lg:max-w-[calc((100svh-12rem)*var(--ratio))]" : ""
+        }`}
       >
         {game.swf ? <Player key={game.id} game={game} swf={game.swf} muted={muted} /> : <Notice title="这个游戏还不能玩" />}
       </div>
@@ -220,27 +245,25 @@ function Player({ game, swf, muted }: { game: Game; swf: Swf; muted: boolean }) 
   }
 }
 
-const mutedKey = "arcade:muted";
-
-/** Whether game sound is off, remembered in this browser. */
-function useMuted() {
-  const [muted, setMuted] = useState(() => {
+/** A yes/no setting remembered in this browser under key. */
+function useStoredFlag(key: string) {
+  const [on, setOn] = useState(() => {
     try {
-      return localStorage.getItem(mutedKey) === "1";
+      return localStorage.getItem(key) === "1";
     } catch {
       return false;
     }
   });
   const set = (next: boolean) => {
-    setMuted(next);
+    setOn(next);
     try {
-      if (next) localStorage.setItem(mutedKey, "1");
-      else localStorage.removeItem(mutedKey);
+      if (next) localStorage.setItem(key, "1");
+      else localStorage.removeItem(key);
     } catch {
       // Not remembered, which only matters on the next visit.
     }
   };
-  return [muted, set] as const;
+  return [on, set] as const;
 }
 
 /**
