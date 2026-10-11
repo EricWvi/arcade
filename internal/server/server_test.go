@@ -272,3 +272,49 @@ func TestSaves(t *testing.T) {
 		t.Errorf("unknown game: %d", rec.Code)
 	}
 }
+
+func TestPlays(t *testing.T) {
+	h := newServer(t, auth.Config{DevUser: "eric"})
+	put := func(id, body string) int {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest("PUT", "/api/plays/"+id, strings.NewReader(body)))
+		return rec.Code
+	}
+	recent := func() []recentGame {
+		t.Helper()
+		rec := do(h, "GET", "/api/plays/recent")
+		var got struct{ Games []recentGame }
+		if rec.Code != 200 || json.Unmarshal(rec.Body.Bytes(), &got) != nil {
+			t.Fatalf("recent: %d %s", rec.Code, rec.Body)
+		}
+		return got.Games
+	}
+	if got := recent(); len(got) != 0 {
+		t.Fatalf("recent before playing = %+v", got)
+	}
+
+	const id = "0b6f2c1e-9a4d-4c3b-8e2f-1a2b3c4d5e6f"
+	if code := put(id, `{"game":"zmxy-1","activeMs":1500,"keys":3,"timezone":"Asia/Shanghai","viewport":"1440x900"}`); code != 204 {
+		t.Fatalf("put: %d", code)
+	}
+	got := recent()
+	if len(got) != 1 || got[0].ID != "zmxy-1" || got[0].Title != "造梦西游" || got[0].PlayedMS != 1500 ||
+		got[0].LastPlayedAt == 0 || got[0].SWF == nil {
+		t.Fatalf("recent = %+v", got)
+	}
+
+	for body, code := range map[string]int{
+		`{"game":"zmxy-1","activeMs":-1}`:    400,
+		`{"game":"zmxy-1","viewport":"big"}`: 400,
+		`not json`:                           400,
+		`{"game":"unknown"}`:                 404,
+		`{"game":"hot-air-1","activeMs":10}`: 409,
+	} {
+		if got := put(id, body); got != code {
+			t.Errorf("put %s: %d, want %d", body, got, code)
+		}
+	}
+	if code := put("not-a-uuid", `{"game":"zmxy-1"}`); code != 400 {
+		t.Errorf("bad id: %d", code)
+	}
+}

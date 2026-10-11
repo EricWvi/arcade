@@ -18,7 +18,7 @@ type Options struct {
 	GamesDir string
 	// Catalog is games.yaml, served by GET /api/catalog.
 	Catalog catalog.Catalog
-	// Store holds each user's game saves.
+	// Store holds each user's game saves and plays.
 	Store *store.Store
 }
 
@@ -51,6 +51,8 @@ func New(authn *auth.Service, web fs.FS, opts Options) (http.Handler, error) {
 	private.HandleFunc("GET /api/catalog", s.getCatalog)
 	private.HandleFunc("GET /api/games/{key}/saves", s.getSaves)
 	private.HandleFunc("PUT /api/games/{key}/saves", s.putSaves)
+	private.HandleFunc("PUT /api/plays/{id}", s.putPlay)
+	private.HandleFunc("GET /api/plays/recent", s.getRecentPlays)
 	private.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "接口不存在")
 	})

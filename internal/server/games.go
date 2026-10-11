@@ -60,13 +60,18 @@ func (s *server) getCatalog(w http.ResponseWriter, r *http.Request) {
 	for _, sh := range s.opts.Catalog.Shelves {
 		out := catalogShelf{ID: sh.ID, Title: sh.Title, Games: []catalogGame{}}
 		for _, key := range sh.Games {
-			g := s.opts.Catalog.Games[key]
-			out.Games = append(out.Games, catalogGame{ID: key, Title: g.Title, Subtitle: g.Subtitle, Images: s.images(key), SWF: s.swf(key, g.SWF)})
+			out.Games = append(out.Games, s.catalogGame(key))
 		}
 		res.Shelves = append(res.Shelves, out)
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, http.StatusOK, res)
+}
+
+// catalogGame describes a game listed in games.yaml.
+func (s *server) catalogGame(key string) catalogGame {
+	g := s.opts.Catalog.Games[key]
+	return catalogGame{ID: key, Title: g.Title, Subtitle: g.Subtitle, Images: s.images(key), SWF: s.swf(key, g.SWF)}
 }
 
 // images finds a game's images. A version changes whenever the image or its

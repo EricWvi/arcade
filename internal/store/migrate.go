@@ -50,6 +50,29 @@ var migrations = []migration{
 		PRIMARY KEY (user_id, game, name)
 	) WITHOUT ROWID;
 	`),
+	execSQL(`
+	-- One row per visit to a game page. The page reports running totals,
+	-- so the latest report wins. Times are server unix milliseconds;
+	-- ended_at moves only while the player is active, so a forgotten tab
+	-- does not stretch a play.
+	CREATE TABLE plays (
+		id            TEXT    PRIMARY KEY,
+		user_id       INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+		game          TEXT    NOT NULL,
+		started_at    INTEGER NOT NULL,
+		ended_at      INTEGER NOT NULL,
+		active_ms     INTEGER NOT NULL DEFAULT 0,
+		fullscreen_ms INTEGER NOT NULL DEFAULT 0,
+		keys          INTEGER NOT NULL DEFAULT 0,
+		clicks        INTEGER NOT NULL DEFAULT 0,
+		save_writes   INTEGER NOT NULL DEFAULT 0,
+		muted         INTEGER NOT NULL DEFAULT 0,
+		timezone      TEXT    NOT NULL DEFAULT '',
+		viewport      TEXT    NOT NULL DEFAULT '',
+		user_agent    TEXT    NOT NULL DEFAULT ''
+	);
+	CREATE INDEX plays_user_ended ON plays (user_id, ended_at);
+	`),
 }
 
 func migrate(db *sql.DB) error {

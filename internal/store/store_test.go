@@ -114,3 +114,62 @@ func TestSavesArePerUserAndGame(t *testing.T) {
 		t.Fatalf("other game = %v", got)
 	}
 }
+
+func TestRecordPlayKeepsRunningTotals(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	alice, _ := s.UpsertUser(ctx, Identity{Issuer: "i", Subject: "alice"})
+	bob, _ := s.UpsertUser(ctx, Identity{Issuer: "i", Subject: "bob"})
+	play := func(userID int64, p Play) error { return s.RecordPlay(ctx, userID, p) }
+	read := func(id string) (started, ended, active, fullscreen, keys int64) {
+		t.Helper()
+		err := s.db.QueryRow(`SELECT started_at, ended_at, active_ms, fullscreen_ms, keys FROM plays WHERE id = ?`, id).
+			Scan(&started, &ended, &active, &fullscreen, &keys)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+
+	// A first report may not claim more than a minute of play.
+	if err := play(alice.ID, Play{ID: "p1", Game: "hot-air-1", ActiveMS: 3_600_000, FullscreenMS: 9_000_000, Keys: 5}); err != nil {
+		t.Fatal(err)
+	}
+	started, ended, active, fullscreen, keys := read("p1")
+	if started != ended || active != activeSlack || fullscreen != activeSlack || keys != 5 {
+		t.Fatalf("first report: %d %d %d %d %d", started, ended, active, fullscreen, keys)
+	}
+	// A late, smaller report changes nothing; counters never go down.
+	if err := play(alice.ID, Play{ID: "p1", Game: "hot-air-1", ActiveMS: 10, Keys: 1}); err != nil {
+		t.Fatal(err)
+	}
+	if _, e, a, _, k := read("p1"); e != ended || a != activeSlack || k != 5 {
+		t.Fatalf("stale report: ended %d active %d keys %d", e, a, k)
+	}
+	// The id belongs to alice and this game.
+	if err := play(bob.ID, Play{ID: "p1", Game: "hot-air-1"}); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("other user: %v", err)
+	}
+	if err := play(alice.ID, Play{ID: "p1", Game: "zmxy-1"}); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("other game: %v", err)
+	}
+
+	if err := play(alice.ID, Play{ID: "p2", Game: "zmxy-1", ActiveMS: 1000}); err != nil {
+		t.Fatal(err)
+	}
+	if err := play(alice.ID, Play{ID: "p3", Game: "hot-air-1", ActiveMS: 2000}); err != nil {
+		t.Fatal(err)
+	}
+	// Make p3 clearly the latest.
+	s.db.Exec(`UPDATE plays SET ended_at = ended_at + 5000 WHERE id = 'p3'`)
+	recent, err := s.RecentGames(ctx, alice.ID, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(recent) != 2 || recent[0].Game != "hot-air-1" || recent[0].ActiveMS != activeSlack+2000 || recent[1].Game != "zmxy-1" {
+		t.Fatalf("recent = %+v", recent)
+	}
+	if recent, _ := s.RecentGames(ctx, bob.ID, 10); len(recent) != 0 {
+		t.Fatalf("bob recent = %+v", recent)
+	}
+}
