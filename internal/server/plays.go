@@ -8,6 +8,7 @@ import (
 	"regexp"
 
 	"arcade/internal/auth"
+	"arcade/internal/catalog"
 	"arcade/internal/store"
 )
 
@@ -70,7 +71,7 @@ func (s *server) putPlay(w http.ResponseWriter, r *http.Request) {
 }
 
 type recentGame struct {
-	catalogGame
+	catalog.ListedGame
 	// LastPlayedAt is unix milliseconds; PlayedMS is active time over all plays.
 	LastPlayedAt int64 `json:"lastPlayedAt"`
 	PlayedMS     int64 `json:"playedMs"`
@@ -94,7 +95,7 @@ func (s *server) getRecentPlays(w http.ResponseWriter, r *http.Request) {
 		if _, ok := s.opts.Catalog.Games[p.Game]; !ok {
 			continue
 		}
-		games = append(games, recentGame{catalogGame: s.catalogGame(p.Game), LastPlayedAt: p.LastPlayedAt, PlayedMS: p.ActiveMS})
+		games = append(games, recentGame{ListedGame: s.opts.Catalog.Describe(s.opts.GamesDir, p.Game), LastPlayedAt: p.LastPlayedAt, PlayedMS: p.ActiveMS})
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, http.StatusOK, map[string][]recentGame{"games": games})

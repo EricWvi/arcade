@@ -30,6 +30,13 @@ var (
 )
 
 func main() {
+	if len(os.Args) > 2 && os.Args[1] == "catalog" && os.Args[2] == "build" {
+		if err := buildCatalog(os.Args[3:]); err != nil {
+			slog.Error("fatal", "err", err)
+			os.Exit(1)
+		}
+		return
+	}
 	configPath := flag.String("config", "config.yaml", "path to the YAML config file")
 	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Parse()

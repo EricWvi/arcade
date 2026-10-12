@@ -185,29 +185,29 @@ func TestGameSources(t *testing.T) {
 
 func TestCatalogKeepsOrderAndListsImagesOnDisk(t *testing.T) {
 	h, games := newServerWithGames(t)
-	catalog := func() catalogResponse {
+	list := func() catalog.Listing {
 		t.Helper()
 		rec := do(h, "GET", "/api/catalog")
 		if rec.Code != 200 {
 			t.Fatalf("catalog: %d %s", rec.Code, rec.Body)
 		}
-		var got catalogResponse
+		var got catalog.Listing
 		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 			t.Fatal(err)
 		}
 		return got
 	}
-	got := catalog()
+	got := list()
 	version := got.Shelves[0].Games[0].Images["card"]
 	if version == "" || got.Shelves[0].Games[0].SWF == nil || got.Shelves[0].Games[0].SWF.Version == "" {
 		t.Fatalf("no card version: %+v", got)
 	}
-	want := catalogResponse{Shelves: []catalogShelf{
-		{ID: "zmxy", Title: "造梦西游系列", Games: []catalogGame{
+	want := catalog.Listing{Shelves: []catalog.ListedShelf{
+		{ID: "zmxy", Title: "造梦西游系列", Games: []catalog.ListedGame{
 			{ID: "zmxy-1", Title: "造梦西游", Subtitle: "动作冒险", Images: map[string]string{"card": version}, Help: "方向键移动",
-				SWF: &catalogSWF{File: "game.swf", Version: got.Shelves[0].Games[0].SWF.Version, Width: 550, Height: 400}, Saves: "file"},
+				SWF: &catalog.ListedSWF{File: "game.swf", Version: got.Shelves[0].Games[0].SWF.Version, Width: 550, Height: 400}, Saves: "file"},
 		}},
-		{ID: "nitrome", Title: "Nitrome", Games: []catalogGame{
+		{ID: "nitrome", Title: "Nitrome", Games: []catalog.ListedGame{
 			{ID: "hot-air-1", Title: "Hot Air", Images: map[string]string{}, Saves: "shared-object"},
 		}},
 	}}
@@ -221,7 +221,7 @@ func TestCatalogKeepsOrderAndListsImagesOnDisk(t *testing.T) {
 		if err := os.WriteFile(path, []byte("replaced "+name), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		next := catalog().Shelves[0].Games[0].Images["card"]
+		next := list().Shelves[0].Games[0].Images["card"]
 		if next == version {
 			t.Fatalf("version unchanged after replacing %s", name)
 		}
