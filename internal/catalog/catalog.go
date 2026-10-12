@@ -44,6 +44,9 @@ type Shelf struct {
 type Game struct {
 	Title    string `yaml:"title"`
 	Subtitle string `yaml:"subtitle"`
+	// Description introduces the game, shown when its card is opened on the
+	// home page. Line breaks are kept.
+	Description string `yaml:"description"`
 	// SWF is the movie to play, relative to the game's sources directory
 	// (<games_dir>/<key>/sources). Files it loads must sit in that
 	// directory too. Empty means the game cannot be played yet.

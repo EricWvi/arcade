@@ -13,6 +13,7 @@ export interface ListedGame {
   id: string;
   title: string;
   subtitle: string;
+  description?: string;
   images: Record<string, string>;
   swf?: { file: string; version: string; width: number; height: number };
   saves: string;

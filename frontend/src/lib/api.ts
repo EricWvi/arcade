@@ -10,6 +10,8 @@ export type Game = {
   id: string;
   title: string;
   subtitle: string;
+  /** Introduces the game, from games.yaml; line breaks matter. */
+  description?: string;
   /** Version of each image that exists on the server; see gameImage. */
   images: Partial<Record<ImageKind, string>>;
   /** The movie to play, if the game can be played; see gameSource. */

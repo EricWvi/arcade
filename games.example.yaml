@@ -15,7 +15,9 @@ shelves:
 # <kind>.blur.webp placeholder from `task images:placeholders`. `swf` is the
 # movie to play, relative to <games_dir>/<key>/sources; files it loads, such
 # as levels, sit beside it. Players need the Ruffle browser extension.
-# `help` says how to play and is shown beside the game; line breaks are kept.
+# `description` introduces the game when its card is opened on the home
+# page; `help` says how to play and is shown beside the game. Line breaks
+# in both are kept: write "\n\n" between paragraphs of a one-line string.
 # `saves` is how the game keeps progress: shared-object (the default; Flash
 # SharedObjects, synced automatically) or file (the game exports and imports
 # save files, as 造梦西游 does; the page keeps them on the server).
@@ -23,12 +25,14 @@ games:
   hot-air-1:
     title: Hot Air
     subtitle: 休闲闯关
+    description: "2005 年 12 月，一家刚起步的英国小工作室交出了自己的第一款 Flash 游戏。它受 Miniclip 委托，前后只做了大约一个月，主角是一只圆滚滚的热气球。这家工作室，就是后来以精致像素画闻名的 Nitrome。\n\n你并不直接操控气球。鼠标指针变成了一台青色的小风扇，你得把它摆到气球身旁，用风一点点把它推向终点。听上去轻松，可关卡里几乎每一面墙都长着尖刺，熔岩、酸池、旋转的刺球和喷火的怪物也在路上等着，轻轻一碰，气球就会“啪”地爆掉。从绿色的起点台出发，稳稳落在红色的终点台上，才算过关。\n\n美术 Mat Annal 说，这个点子来自《Lemmings 2》里用风扇吹动小旅鼠的玩法。游戏共有 20 个正式关卡和 5 个奖励关卡，每关都散落着星星，收齐一关的星星就能换来一枚星章，攒够星章便能解锁奖励关。带着 16 位机味道的像素画面，致敬了《泡泡龙》《星之卡比》和马力欧，它也因此入围了 Jay is Games 评选的 2005 年度十佳休闲游戏。\n\n上手只要几秒，驾驭风力却需要耐心：风扇离得太近，气球会被猛地吹向尖刺；离得太远，又推不动它。慢一点，再慢一点，这大概是整个游戏最重要的一课。"
     swf: Hot_Air.swf
     help: |
       用鼠标指针在屏幕上移动风扇。
   zmxy-1:
     title: 造梦西游
     subtitle: 动作冒险
+    description: "2011 年 4 月 20 日，4399 旗下的造梦工作室上线了一款横版动作网页游戏。那时谁也没想到，这个名字会陪伴许多人的整个童年，它就是《造梦西游》。\n\n故事发生在唐太宗年间。被太上老君封在炼丹炉里上千年的牛魔王挣脱了封印，东海也随之冒出七个魔头，四处作乱。要对付他们，师徒必须先找回如意金箍棒，可线索指向的东海龙宫，早已被蛟魔王和鲨魔王占据。一场降妖除魔的旅程，就此开始。\n\n玩法是纯粹的横版过关：一张地图接一张地图地打过去，击败关底的魔王，捡起掉落的装备，再带着更强的武器和技能挑战下一关。这一代只有装备和技能两套系统，却足够让人为了一件好装备把同一关反复刷上几十遍。至于哪个位置“爆率更高”，至今仍是玩家之间流传的传说。\n\n最难忘的或许是双人模式：两个人挤在同一台电脑前，一人守着 A、D、J、K，一人占着方向键和小键盘，就能一起打上一整个下午。后来的《造梦西游 2》《造梦西游 3》让这个系列大红大紫，如今还有玩家笑称它是“《黑神话：悟空》青春版”。而这一切，都从这里开始。"
     swf: zmxy_1.swf
     saves: file
     help: |

@@ -31,6 +31,8 @@ games:
   hot-air-1:
     title: Hot Air
     subtitle: 休闲闯关
+    description: |
+      驾驶热气球闯关。
     swf: Hot_Air.swf
     help: |
       用鼠标移动风扇。
@@ -51,7 +53,7 @@ func TestLoad(t *testing.T) {
 			{ID: "nitrome", Title: "Nitrome", Games: []string{"hot-air-1", "zmxy-1"}},
 		},
 		Games: map[string]Game{
-			"hot-air-1": {Title: "Hot Air", Subtitle: "休闲闯关", SWF: "Hot_Air.swf", Help: "用鼠标移动风扇。\n第二行\n"},
+			"hot-air-1": {Title: "Hot Air", Subtitle: "休闲闯关", Description: "驾驶热气球闯关。\n", SWF: "Hot_Air.swf", Help: "用鼠标移动风扇。\n第二行\n"},
 			"zmxy-1":    {Title: "造梦西游", Saves: SavesFile},
 		},
 	}

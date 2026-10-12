@@ -11,6 +11,8 @@ games:
   zmxy-1:
     title: 造梦西游
     subtitle: 动作冒险
+    description: |
+      西游题材的横版闯关。
     swf: game.swf
     saves: file
     help: |

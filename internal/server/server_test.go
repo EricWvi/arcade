@@ -66,7 +66,7 @@ func newServerWith(t *testing.T, cfg auth.Config) (http.Handler, string) {
 			{ID: "nitrome", Title: "Nitrome", Games: []string{"hot-air-1"}},
 		},
 		Games: map[string]catalog.Game{
-			"zmxy-1":    {Title: "造梦西游", Subtitle: "动作冒险", SWF: "game.swf", Saves: "file", Help: "  方向键移动\n"},
+			"zmxy-1":    {Title: "造梦西游", Subtitle: "动作冒险", Description: "西游题材的横版闯关。\n", SWF: "game.swf", Saves: "file", Help: "  方向键移动\n"},
 			"hot-air-1": {Title: "Hot Air", SWF: "missing.swf"},
 		},
 	}
@@ -204,7 +204,7 @@ func TestCatalogKeepsOrderAndListsImagesOnDisk(t *testing.T) {
 	}
 	want := catalog.Listing{Shelves: []catalog.ListedShelf{
 		{ID: "zmxy", Title: "造梦西游系列", Games: []catalog.ListedGame{
-			{ID: "zmxy-1", Title: "造梦西游", Subtitle: "动作冒险", Images: map[string]string{"card": version}, Help: "方向键移动",
+			{ID: "zmxy-1", Title: "造梦西游", Subtitle: "动作冒险", Description: "西游题材的横版闯关。", Images: map[string]string{"card": version}, Help: "方向键移动",
 				SWF: &catalog.ListedSWF{File: "game.swf", Version: got.Shelves[0].Games[0].SWF.Version, Width: 550, Height: 400}, Saves: "file"},
 		}},
 		{ID: "nitrome", Title: "Nitrome", Games: []catalog.ListedGame{

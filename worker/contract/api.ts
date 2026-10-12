@@ -23,6 +23,7 @@ const zmxy = {
   id: "zmxy-1",
   title: "造梦西游",
   subtitle: "动作冒险",
+  description: "西游题材的横版闯关。",
   images: { card: expect.any(String) },
   swf: { file: "game.swf", version: expect.any(String), width: 550, height: 400 },
   saves: "file",

@@ -41,6 +41,14 @@
 }
 
 /*
+ * Sheets (the open game card in shelf.tsx) move like iOS ones: fast off
+ * the mark, then a long, soft settle. Closing uses the same curve, a bit shorter.
+ */
+@theme {
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/*
  * The sound bell's click feedback, after YouTube's subscribe bell: turning
  * sound on rings the bell inside a fading ripple; muting just pops it.
  */
@@ -93,6 +101,10 @@
 @layer base {
   * {
     @apply border-line;
+  }
+  /* An open game card (shelf.tsx) holds the page still behind it. */
+  html:has(dialog[open]) {
+    overflow: hidden;
   }
   body {
     @apply bg-background text-foreground antialiased;

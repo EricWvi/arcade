@@ -67,6 +67,8 @@ type ListedGame struct {
 	ID       string `json:"id"`
 	Title    string `json:"title"`
 	Subtitle string `json:"subtitle"`
+	// Description introduces the game, from games.yaml; empty if not given.
+	Description string `json:"description,omitempty"`
 	// Images maps each kind found on disk to its version. The frontend
 	// builds the URLs and appends ?v=<version> so they can be cached forever.
 	Images map[string]string `json:"images"`
@@ -117,7 +119,7 @@ func (c Catalog) Shelved(key string) bool {
 func (c Catalog) Describe(gamesDir, key string) ListedGame {
 	g := c.Games[key]
 	return ListedGame{
-		ID: key, Title: g.Title, Subtitle: g.Subtitle,
+		ID: key, Title: g.Title, Subtitle: g.Subtitle, Description: strings.TrimSpace(g.Description),
 		Images: images(gamesDir, key), SWF: movie(gamesDir, key, g.SWF),
 		Saves: g.SavesMode(), Help: strings.TrimSpace(g.Help),
 	}
