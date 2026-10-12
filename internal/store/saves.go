@@ -35,10 +35,40 @@ func (s *Store) Saves(ctx context.Context, userID int64, game string) ([]Save, e
 }
 
 // PutSaves writes some of a user's saves for a game in one transaction. A
-// nil value deletes that save; saves not named are left alone.
-func (s *Store) PutSaves(ctx context.Context, userID int64, game string, saves map[string]*string) error {
+// nil value deletes that save; saves not named are left alone. A write that
+// would leave the user more than limit saves for the game, and more than
+// before, returns ErrTooMany and changes nothing.
+func (s *Store) PutSaves(ctx context.Context, userID int64, game string, saves map[string]*string, limit int) error {
 	now := time.Now().Unix()
 	return s.inTx(ctx, func(tx *sql.Tx) error {
+		rows, err := tx.QueryContext(ctx, `SELECT name FROM saves WHERE user_id = ? AND game = ?`, userID, game)
+		if err != nil {
+			return err
+		}
+		names := map[string]bool{}
+		for rows.Next() {
+			var name string
+			if err := rows.Scan(&name); err != nil {
+				rows.Close()
+				return err
+			}
+			names[name] = true
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		before := len(names)
+		for name, data := range saves {
+			if data == nil {
+				delete(names, name)
+			} else {
+				names[name] = true
+			}
+		}
+		if len(names) > limit && len(names) > before {
+			return ErrTooMany
+		}
 		for name, data := range saves {
 			var err error
 			if data == nil {

@@ -94,14 +94,14 @@ func TestSavesArePerUserAndGame(t *testing.T) {
 	bob, _ := s.UpsertUser(ctx, Identity{Issuer: "i", Subject: "bob"})
 	str := func(v string) *string { return &v }
 
-	if err := s.PutSaves(ctx, alice.ID, "hot-air-1", map[string]*string{"levels": str("1"), "stars": str("2")}); err != nil {
+	if err := s.PutSaves(ctx, alice.ID, "hot-air-1", map[string]*string{"levels": str("1"), "stars": str("2")}, 10); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.PutSaves(ctx, bob.ID, "hot-air-1", map[string]*string{"levels": str("bob")}); err != nil {
+	if err := s.PutSaves(ctx, bob.ID, "hot-air-1", map[string]*string{"levels": str("bob")}, 10); err != nil {
 		t.Fatal(err)
 	}
 	// Overwrites one, deletes one, keeps the rest.
-	if err := s.PutSaves(ctx, alice.ID, "hot-air-1", map[string]*string{"levels": str("3"), "stars": nil, "time": str("4")}); err != nil {
+	if err := s.PutSaves(ctx, alice.ID, "hot-air-1", map[string]*string{"levels": str("3"), "stars": nil, "time": str("4")}, 10); err != nil {
 		t.Fatal(err)
 	}
 	data := func(saves []Save) map[string]string {
@@ -123,6 +123,35 @@ func TestSavesArePerUserAndGame(t *testing.T) {
 	}
 	if got, _ := s.Saves(ctx, alice.ID, "zmxy-1"); len(got) != 0 {
 		t.Fatalf("other game = %v", got)
+	}
+}
+
+func TestPutSavesKeepsToTheLimit(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	u, _ := s.UpsertUser(ctx, Identity{Issuer: "i", Subject: "alice"})
+	str := func(v string) *string { return &v }
+	if err := s.PutSaves(ctx, u.ID, "g", map[string]*string{"a": str("1"), "b": str("2")}, 2); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.PutSaves(ctx, u.ID, "g", map[string]*string{"a": str("3"), "c": str("4")}, 2); !errors.Is(err, ErrTooMany) {
+		t.Fatalf("third save: err = %v", err)
+	}
+	got, _ := s.Saves(ctx, u.ID, "g")
+	data := map[string]string{}
+	for _, sv := range got {
+		data[sv.Name] = sv.Data
+	}
+	if !reflect.DeepEqual(data, map[string]string{"a": "1", "b": "2"}) {
+		t.Fatalf("a rejected write changed saves: %v", got)
+	}
+	// Overwriting, or replacing one with another, still fits.
+	if err := s.PutSaves(ctx, u.ID, "g", map[string]*string{"a": str("5"), "b": nil, "c": str("6")}, 2); err != nil {
+		t.Fatal(err)
+	}
+	// Other games and users have their own limit.
+	if err := s.PutSaves(ctx, u.ID, "h", map[string]*string{"a": str("1"), "b": str("2")}, 2); err != nil {
+		t.Fatal(err)
 	}
 }
 

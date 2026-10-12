@@ -102,6 +102,17 @@ func (c Catalog) List(gamesDir string) Listing {
 	return res
 }
 
+// Shelved reports whether a shelf lists the game. Only those can be
+// reached from the home page, so only they are played, saved and listed.
+func (c Catalog) Shelved(key string) bool {
+	for _, sh := range c.Shelves {
+		if slices.Contains(sh.Games, key) {
+			return true
+		}
+	}
+	return false
+}
+
 // Describe lists one game, looking up its images and movie under gamesDir.
 func (c Catalog) Describe(gamesDir, key string) ListedGame {
 	g := c.Games[key]

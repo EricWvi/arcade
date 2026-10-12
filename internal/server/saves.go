@@ -3,12 +3,14 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"unicode"
 	"unicode/utf8"
 
 	"arcade/internal/auth"
+	"arcade/internal/store"
 )
 
 // Limits on what a game may save. Flash allowed 100 KB per SharedObject
@@ -18,6 +20,8 @@ const (
 	maxSaveData  = 1 << 20
 	maxSaveBatch = 64
 	maxSaveBody  = 8 << 20
+	// maxSavesPerGame bounds how many saves a user keeps for one game.
+	maxSavesPerGame = 100
 )
 
 type savesBody struct {
@@ -83,7 +87,12 @@ func (s *server) putSaves(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if err := s.opts.Store.PutSaves(r.Context(), auth.User(r.Context()).ID, key, body.Saves); err != nil {
+	err := s.opts.Store.PutSaves(r.Context(), auth.User(r.Context()).ID, key, body.Saves, maxSavesPerGame)
+	if errors.Is(err, store.ErrTooMany) {
+		writeError(w, http.StatusConflict, fmt.Sprintf("每个游戏最多保留 %d 个存档，请先删除一些", maxSavesPerGame))
+		return
+	}
+	if err != nil {
 		slog.Error("write saves", "game", key, "err", err)
 		writeError(w, http.StatusInternalServerError, "保存存档失败")
 		return
@@ -91,10 +100,10 @@ func (s *server) putSaves(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// gameKey returns the game in the path if games.yaml lists it.
+// gameKey returns the game in the path if a shelf lists it.
 func (s *server) gameKey(w http.ResponseWriter, r *http.Request) (string, bool) {
 	key := r.PathValue("key")
-	if _, ok := s.opts.Catalog.Games[key]; !ok {
+	if !s.opts.Catalog.Shelved(key) {
 		writeError(w, http.StatusNotFound, "游戏不存在")
 		return "", false
 	}

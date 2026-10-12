@@ -17,6 +17,8 @@ var (
 	ErrNotFound = errors.New("not found")
 	// ErrInvalid reports rejected input; the wrapped message is user-facing.
 	ErrInvalid = errors.New("invalid input")
+	// ErrTooMany reports a write that would keep more saves than allowed.
+	ErrTooMany = errors.New("too many saves")
 )
 
 // Store is safe for concurrent use.

@@ -40,7 +40,7 @@ func (s *server) putPlay(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "游玩记录格式不对")
 		return
 	}
-	if _, ok := s.opts.Catalog.Games[body.Game]; !ok {
+	if !s.opts.Catalog.Shelved(body.Game) {
 		writeError(w, http.StatusNotFound, "游戏不存在")
 		return
 	}
@@ -78,7 +78,7 @@ type recentGame struct {
 }
 
 // getRecentPlays lists the user's most recently played games that are
-// still in games.yaml.
+// still on a shelf.
 func (s *server) getRecentPlays(w http.ResponseWriter, r *http.Request) {
 	// Removed games are skipped, so ask for more than needed.
 	played, err := s.opts.Store.RecentGames(r.Context(), auth.User(r.Context()).ID, 50)
@@ -92,7 +92,7 @@ func (s *server) getRecentPlays(w http.ResponseWriter, r *http.Request) {
 		if len(games) == recentLimit {
 			break
 		}
-		if _, ok := s.opts.Catalog.Games[p.Game]; !ok {
+		if !s.opts.Catalog.Shelved(p.Game) {
 			continue
 		}
 		games = append(games, recentGame{ListedGame: s.opts.Catalog.Describe(s.opts.GamesDir, p.Game), LastPlayedAt: p.LastPlayedAt, PlayedMS: p.ActiveMS})
