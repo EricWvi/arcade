@@ -11,22 +11,11 @@ on:
         type: string
 
 jobs:
-  image:
+  version:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
-      # GHCR image names must be lowercase; the repository owner may not be.
-      - name: Set lowercase image name
-        env:
-          REPO: ${{ github.repository }}
-        run: echo "IMAGE=ghcr.io/${REPO,,}" >> "$GITHUB_ENV"
-
-      - name: Checkout code
-        uses: actions/checkout@v5
-
       - name: Determine version
         id: version
         env:
@@ -44,7 +33,24 @@ jobs:
           fi
 
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Building release version: ${VERSION}"
+          echo "Release version: ${VERSION}"
+
+  image:
+    needs: version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # GHCR image names must be lowercase; the repository owner may not be.
+      - name: Set image tags
+        id: tags
+        env:
+          REPO: ${{ github.repository }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          IMAGE=ghcr.io/${REPO,,}
           {
             echo 'tags<<EOF'
             echo "${IMAGE}:${VERSION}"
@@ -54,6 +60,9 @@ jobs:
             fi
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
+
+      - name: Checkout code
+        uses: actions/checkout@v5
 
       # No QEMU: every build stage runs on the runner and Go cross-compiles,
       # and the runtime stage has no RUN steps.
@@ -73,9 +82,79 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.version.outputs.tags }}
+          tags: ${{ steps.tags.outputs.tags }}
           build-args: |
-            VERSION=${{ steps.version.outputs.version }}
+            VERSION=${{ needs.version.outputs.version }}
             COMMIT=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # The public site on 4399.onlyquant.top; see docs/cloudflare.md.
+  worker:
+    needs: version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            worker/package-lock.json
+
+      - name: Build the frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run typecheck
+          npm run build
+
+      # Includes the API contract against the Go server.
+      - name: Test the Worker
+        working-directory: worker
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+
+      # Idempotent, so the first release needs nothing created by hand.
+      - name: Create D1 and R2 if missing
+        working-directory: worker
+        run: |
+          npx wrangler d1 info arcade >/dev/null 2>&1 || npx wrangler d1 create arcade
+          npx wrangler r2 bucket info arcade-games >/dev/null 2>&1 || npx wrangler r2 bucket create arcade-games
+
+      - name: Migrate D1
+        working-directory: worker
+        run: npx wrangler d1 migrations apply arcade --remote
+
+      # GitHub reserves the GITHUB_ prefix for its own secrets, hence OAUTH_.
+      - name: Deploy
+        working-directory: worker
+        env:
+          OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID }}
+          OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          secrets="$RUNNER_TEMP/worker-secrets.json"
+          node -e 'console.log(JSON.stringify({
+            GITHUB_CLIENT_ID: process.env.OAUTH_CLIENT_ID,
+            GITHUB_CLIENT_SECRET: process.env.OAUTH_CLIENT_SECRET,
+          }))' > "$secrets"
+          npx wrangler deploy --var "VERSION:${VERSION}" --secrets-file "$secrets"
+          rm -f "$secrets"

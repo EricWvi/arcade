@@ -14,26 +14,28 @@
 
 HTTP API 两边一致，前端不区分。一致性由契约测试保证：`worker/contract/api.ts` 同一套用例分别跑 Go 服务和 Worker（`task test:contract`），只有登录不在契约里。
 
-## 首次部署
+## 部署
 
-在本地开发机上操作，需要 `task install:worker` 和 `npx wrangler login`。
+打 `v*` tag 时，[release.yml](../.github/workflows/release.yml) 的 `worker` job 和 homelab 镜像一起发布：跑 Worker 测试（含契约）、构建前端、D1 和 R2 不存在就创建、执行 `worker/migrations/` 里的迁移、部署并写入 secrets。自定义域名 `4399.onlyquant.top` 随部署绑定，workers.dev 和预览地址都关闭。wrangler.jsonc 只按名字引用 D1 和 R2，不需要填 id。
 
-1. 在 GitHub 创建 OAuth app（Settings → Developer settings → OAuth Apps），callback URL 填 `https://4399.onlyquant.top/auth/callback`。
-2. 创建资源并写入 secrets：
+首次发布前在网页上准备：
 
-   ```bash
-   cd worker
-   npx wrangler d1 create arcade
-   npx wrangler r2 bucket create arcade-games
-   npx wrangler secret put GITHUB_CLIENT_ID
-   npx wrangler secret put GITHUB_CLIENT_SECRET
-   ```
+1. GitHub OAuth app（Settings → Developer settings → OAuth Apps），callback URL 填 `https://4399.onlyquant.top/auth/callback`。
+2. Cloudflare API token（My Profile → API Tokens → Create Token），权限：
+   - Account：Workers Scripts、D1、Workers R2 Storage，均为 Edit
+   - Zone `onlyquant.top`：Workers Routes Edit（绑定自定义域名）
+3. GitHub 仓库 Settings → Secrets and variables → Actions 添加：
 
-   wrangler.jsonc 只按名字引用 D1 和 R2，不需要填 id。
+   | Secret | 内容 |
+   |---|---|
+   | `CLOUDFLARE_API_TOKEN` | 第 2 步的 token |
+   | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 面板 Workers 页面右侧的 Account ID |
+   | `OAUTH_CLIENT_ID` | OAuth app 的 Client ID |
+   | `OAUTH_CLIENT_SECRET` | OAuth app 生成的 client secret |
 
-3. `task deploy:worker`：构建前端、执行 D1 迁移、部署，版本号取自 `git describe`。自定义域名 `4399.onlyquant.top` 随部署绑定（`onlyquant.top` 需要在同一个 Cloudflare 账号下），workers.dev 和预览地址都关闭。
+   GitHub 不允许 secret 名以 `GITHUB_` 开头，所以叫 `OAUTH_*`，部署时写成 Worker 的 `GITHUB_CLIENT_ID` 和 `GITHUB_CLIENT_SECRET`。
 
-之后更新代码只需要 `task deploy:worker`；新增迁移文件放进 `worker/migrations/`，部署时自动执行。
+本地手动部署（需要 `npx wrangler login`，secrets 用 `npx wrangler secret put` 设置）：`task deploy:worker`。
 
 ## 发布游戏
 
