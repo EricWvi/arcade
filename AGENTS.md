@@ -13,3 +13,11 @@ considering a change complete.
 - All lint and unit tests: `task test`
 - Release binary: `task build`
 - Blurred image placeholders: `task images:placeholders -- PATH...` (Pillow in `.tmp/venv`)
+
+## API contract
+
+The HTTP API has two implementations: the Go server (`internal/server`,
+homelab) and the Cloudflare Worker (`worker/src`, public site). An API change
+lands in both, plus `worker/contract/api.ts`, the one suite that runs against
+each; `task test:contract` must pass. Sign-in is the only intended
+difference (OIDC vs GitHub), so it stays out of the contract.

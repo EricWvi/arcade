@@ -20,6 +20,12 @@ tasks:
     cmds:
       - npm ci
 
+  install:worker:
+    desc: Install locked Cloudflare Worker dependencies
+    dir: worker
+    cmds:
+      - npm ci
+
   install:go:
     desc: Download Go module dependencies
     cmds:
@@ -74,11 +80,18 @@ tasks:
     desc: Run all linters
     cmds:
       - task: lint:frontend
+      - task: lint:worker
       - task: lint:go
 
   lint:frontend:
     desc: Typecheck frontend source
     dir: frontend
+    cmds:
+      - npm run typecheck
+
+  lint:worker:
+    desc: Typecheck the Cloudflare Worker
+    dir: worker
     cmds:
       - npm run typecheck
 
@@ -100,11 +113,24 @@ tasks:
     cmds:
       - task: lint
       - task: test:go
+      - task: test:worker
 
   test:go:
     desc: Run Go unit and HTTP tests
     cmds:
       - go test ./...
+
+  test:worker:
+    desc: Run the Cloudflare Worker tests and the API contract against both servers
+    dir: worker
+    cmds:
+      - npm test
+
+  test:contract:
+    desc: Run only the API contract (worker/contract) against the Go server and the Worker
+    dir: worker
+    cmds:
+      - npm test -- --project 'contract:*'
 
   images:placeholders:
     desc: "Write blurred <name>.blur.webp placeholders (default: games/*/imgs; or task images:placeholders -- PATH...)"
@@ -126,3 +152,25 @@ tasks:
     desc: Run the arcade server with .data/config.yaml; the database lives in .data too
     cmds:
       - go run ./cmd/arcade -config .data/config.yaml {{.CLI_ARGS}}
+
+  run:worker:
+    desc: "Run the Cloudflare Worker locally on :8787 (set DEV_USER in worker/.dev.vars to skip GitHub)"
+    dir: worker
+    cmds:
+      - npx wrangler d1 migrations apply arcade --local
+      - npx wrangler dev {{.CLI_ARGS}}
+
+  ###################################################
+  ##################### Deploy ######################
+  ###################################################
+
+  deploy:worker:
+    desc: Build the frontend, migrate D1 and deploy the Cloudflare Worker (needs wrangler login)
+    deps: [build:frontend]
+    dir: worker
+    vars:
+      VERSION:
+        sh: git describe --tags --always --dirty 2>/dev/null || echo dev
+    cmds:
+      - npx wrangler d1 migrations apply arcade --remote
+      - npx wrangler deploy --var VERSION:{{.VERSION}}

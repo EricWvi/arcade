@@ -51,6 +51,10 @@ cd /root/dotfiles/selfhost/only && docker compose up -d arcade
 
 Caddy 把 arcade 的域名反代到 `arcade:36753`；arcade 自己做 OIDC 登录，不加 `forward_auth`。
 
+## Cloudflare
+
+另有一个公开版本跑在 Cloudflare（Worker + D1 + R2，GitHub 登录），和 homelab 并行、数据独立，部署和发布游戏见 [docs/cloudflare.md](docs/cloudflare.md)。
+
 ## 预先生成游戏目录
 
 没有 games 目录的部署（例如 Cloudflare）不能在请求时扫描磁盘，改为发布前用 `arcade catalog build` 算好：读一份 games.yaml（可以和 homelab 那份不同），输出到 `-out` 目录：

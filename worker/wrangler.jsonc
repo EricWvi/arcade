@@ -1,0 +1,34 @@
+// The public arcade on Cloudflare: this Worker serves the API and the game
+// files, Static Assets serve the frontend. D1 and R2 are found by name, so
+// no account ids live here. See docs/cloudflare.md.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "arcade",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-15",
+  // GitHub only accepts the callback registered for this domain.
+  "routes": [{ "pattern": "4399.onlyquant.top", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": "../frontend/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // /games/<key> is an app page; the Worker hands it back to the assets.
+    "run_worker_first": ["/api/*", "/auth/*", "/games/*"]
+  },
+  // Users, sessions, saves and plays; schema in migrations/.
+  "d1_databases": [{ "binding": "DB", "database_name": "arcade", "migrations_dir": "migrations" }],
+  // Game files and catalog.json, uploaded from `arcade catalog build` output.
+  "r2_buckets": [{ "binding": "GAMES", "bucket_name": "arcade-games" }],
+  "vars": {
+    // Set with --var VERSION:<tag> on deploy.
+    "VERSION": "dev",
+    // Local development only (.dev.vars): skip GitHub and sign every request
+    // in as this user.
+    "DEV_USER": ""
+  },
+  // The GitHub OAuth app; set with `wrangler secret put`.
+  "secrets": { "required": ["GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"] },
+  "observability": { "enabled": true }
+}

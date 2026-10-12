@@ -10,3 +10,4 @@ memories
 *.db
 config.yaml
 games
+worker
