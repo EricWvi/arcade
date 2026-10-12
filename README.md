@@ -65,10 +65,10 @@ Caddy 把 arcade 的域名反代到 `arcade:36753`；arcade 自己做 OIDC 登�
 games.yaml 有错，或上架游戏的 swf 不在磁盘上时直接失败，不写任何输出。镜像是 distroless，用一次性容器跑时覆盖 entrypoint：
 
 ```bash
-docker run --rm --entrypoint /app/arcade \
+docker run --rm --user 0:0 --entrypoint /app/arcade \
   -v /root/only/selfhost/arcade/games:/app/games:ro \
   -v /root/only/selfhost/arcade/cf:/cf \
-  ghcr.io/<owner>/arcade:<tag> \
+  ghcr.io/ericwvi/arcade:<版本> \
   catalog build -games /app/games -catalog /cf/games.yaml -out /cf/dist
 ```
 

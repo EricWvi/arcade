@@ -59,8 +59,9 @@ cf=/root/only/selfhost/arcade/cf
 games=/root/only/selfhost/arcade/games
 
 # 1. 校验 games.yaml，生成 catalog.json 和上传清单 files.txt
-docker run --rm --entrypoint /app/arcade -v $games:/app/games:ro -v $cf:/cf \
-  ghcr.io/<owner>/arcade:<tag> catalog build -catalog /cf/games.yaml -out /cf/dist
+#    镜像默认以 nonroot 运行，写不进 root 的 $cf，所以用 root
+docker run --rm --user 0:0 --entrypoint /app/arcade -v $games:/app/games:ro -v $cf:/cf \
+  ghcr.io/ericwvi/arcade:<版本> catalog build -catalog /cf/games.yaml -out /cf/dist
 
 # 2. 上传游戏文件，没变的会跳过
 docker run --rm --env-file $cf/rclone.env -v $games:/games:ro -v $cf/dist:/dist:ro \
