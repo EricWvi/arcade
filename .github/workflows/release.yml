@@ -132,11 +132,12 @@ jobs:
           npm run typecheck
           npm test
 
-      # Idempotent, so the first release needs nothing created by hand.
+      # Idempotent, so the first release needs nothing created by hand. D1
+      # lives near the players; without a hint it lands near the runner.
       - name: Create D1 and R2 if missing
         working-directory: worker
         run: |
-          npx wrangler d1 info arcade >/dev/null 2>&1 || npx wrangler d1 create arcade
+          npx wrangler d1 info arcade >/dev/null 2>&1 || npx wrangler d1 create arcade --location apac
           npx wrangler r2 bucket info arcade-games >/dev/null 2>&1 || npx wrangler r2 bucket create arcade-games
 
       - name: Migrate D1
