@@ -19,6 +19,7 @@ export type RuffleLoadOptions = {
   allowScriptAccess?: boolean;
   contextMenu?: "on" | "rightClickOnly" | "off";
   openUrlMode?: "allow" | "confirm" | "deny";
+  deviceFontRenderer?: "embedded" | "canvas";
 };
 
 type RuffleHandle = { load(options: RuffleLoadOptions): Promise<void>; volume: number };

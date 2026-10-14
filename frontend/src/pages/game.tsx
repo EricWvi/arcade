@@ -200,6 +200,8 @@ function Player({ game, swf, muted }: { game: Game; swf: Swf; muted: boolean }) 
       allowScriptAccess: false,
       contextMenu: "rightClickOnly",
       openUrlMode: "confirm",
+      // Text in system fonts such as SimSun; Ruffle's own font has no Chinese.
+      deviceFontRenderer: "canvas",
     })
       .then(() => {
         loaded.current = true;
