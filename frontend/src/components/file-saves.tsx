@@ -5,14 +5,15 @@ import { useEffect, useRef, useState } from "react";
 import { describeSave } from "@/games";
 import { api, type Game } from "@/lib/api";
 import { catchFileDialogs, type LoadRequest, type SaveRequest } from "@/lib/file-saves";
-import { timeAgo } from "@/lib/format";
+import { dateTime } from "@/lib/format";
+import { maxTitle, type SlotSave, toSlots, validTitle, writeSlot } from "@/lib/save-slots";
 
 type Dialog = { kind: "save"; request: SaveRequest } | { kind: "load"; request: LoadRequest };
 
 /**
  * Save and load dialogs for a game that saves to files, shown over the
- * stage when the game asks. Saves live on the server under the names the
- * player gives them. onSaved runs after each successful save; onClose
+ * stage when the game asks. Saves live on the server in six slots; see
+ * lib/save-slots.ts. onSaved runs after each successful save; onClose
  * returns the keyboard to the game.
  */
 export function FileSaves({ game, onSaved, onClose }: { game: Game; onSaved: () => void; onClose: () => void }) {
@@ -68,16 +69,12 @@ export function FileSaves({ game, onSaved, onClose }: { game: Game; onSaved: () 
   );
 }
 
-/** The user's saves for game, newest first. */
-function useSaves(game: Game) {
+/** The user's saves for game, in their slots. */
+function useSlots(game: Game) {
   const query = useQuery({ queryKey: ["saves", game.id], queryFn: () => api.saves(game.id) });
-  const list = Object.entries(query.data?.saves ?? {})
-    .map(([name, data]) => ({ name, data, updated: query.data?.updated[name] ?? 0 }))
-    .sort((a, b) => b.updated - a.updated);
-  return { ...query, list };
+  const slots = query.data ? toSlots(query.data.saves, query.data.updated) : [];
+  return { ...query, slots };
 }
-
-const validName = (name: string) => name.length > 0 && name.length <= 100 && !/[\p{Cc}]/u.test(name);
 
 function SaveDialog({
   game,
@@ -87,23 +84,26 @@ function SaveDialog({
 }: {
   game: Game;
   request: SaveRequest;
-  onDone: (name: string) => void;
+  onDone: (title: string) => void;
   onCancel: () => void;
 }) {
-  const saves = useSaves(game);
+  const saves = useSlots(game);
   const queryClient = useQueryClient();
-  const [name, setName] = useState(() => describeSave[game.id]?.(request.data) ?? "存档");
+  const [title, setTitle] = useState(() => describeSave[game.id]?.(request.data) ?? "存档");
+  // The player always picks the slot; none is chosen for them.
+  const [slot, setSlot] = useState(-1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const trimmed = name.trim();
-  const overwrites = saves.list.some((s) => s.name === trimmed);
+  const trimmed = title.trim();
+  const replaces = slot >= 0 ? saves.slots[slot] : undefined;
 
   const save = async () => {
-    if (!validName(trimmed)) return setError("请输入 1 到 100 个字的存档名");
+    if (!validTitle(trimmed)) return setError(`请输入 1 到 ${maxTitle} 个字的存档名`);
+    if (slot < 0) return setError("请选择要保存到的位置");
     setSaving(true);
     setError("");
     try {
-      await api.putSaves(game.id, { [trimmed]: request.data });
+      await api.putSaves(game.id, writeSlot(saves.slots, slot, trimmed, request.data));
       await queryClient.invalidateQueries({ queryKey: ["saves", game.id] });
       onDone(trimmed);
     } catch (err) {
@@ -126,24 +126,19 @@ function SaveDialog({
         <input
           id="save-name"
           autoFocus
-          value={name}
-          maxLength={100}
-          onChange={(e) => setName(e.target.value)}
+          value={title}
+          maxLength={maxTitle}
+          onChange={(e) => setTitle(e.target.value)}
           onFocus={(e) => e.target.select()}
           className="mt-2 w-full rounded-xl border bg-surface px-3 py-2 outline-none focus:border-accent"
         />
+        <SlotView saves={saves} selected={slot} onPick={setSlot} />
         <p className={`mt-2 min-h-5 text-sm ${error ? "text-danger" : "text-muted"}`}>
-          {error || (overwrites ? "将覆盖同名存档" : "")}
+          {error || (slot < 0 ? "选择要保存到的位置" : replaces ? `将覆盖「${replaces.title}」` : "")}
         </p>
-        {saves.list.length > 0 && (
-          <>
-            <p className="mt-2 text-sm font-semibold">覆盖已有存档</p>
-            <SaveList saves={saves.list} onPick={(s) => setName(s.name)} selected={trimmed} />
-          </>
-        )}
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="mt-3 flex justify-end gap-2">
           <Button onClick={onCancel}>取消</Button>
-          <Button primary type="submit" disabled={saving}>
+          <Button primary type="submit" disabled={saving || slot < 0}>
             {saving ? "保存中…" : "保存"}
           </Button>
         </div>
@@ -153,7 +148,7 @@ function SaveDialog({
 }
 
 function LoadDialog({ game, request, onDone }: { game: Game; request: LoadRequest; onDone: (message?: string) => void }) {
-  const saves = useSaves(game);
+  const saves = useSlots(game);
   const queryClient = useQueryClient();
   const [error, setError] = useState("");
   const cancel = () => {
@@ -161,22 +156,26 @@ function LoadDialog({ game, request, onDone }: { game: Game; request: LoadReques
     onDone();
   };
 
-  const remove = async (name: string) => {
-    if (!window.confirm(`删除存档「${name}」？删除后无法恢复。`)) return;
+  const remove = async (save: SlotSave) => {
+    if (!window.confirm(`删除存档「${save.title}」？删除后无法恢复。`)) return;
     try {
-      await api.putSaves(game.id, { [name]: null });
+      await api.putSaves(game.id, { [save.name]: null });
       await queryClient.invalidateQueries({ queryKey: ["saves", game.id] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "删除失败");
     }
   };
 
-  // A file imported from disk is also kept on the server, under its name.
+  // A file imported from disk is also kept on the server, in the first
+  // empty slot, under its name.
   const importFile = () => {
+    const slots = saves.slots;
     request.browse((fileName, data) => {
-      const name = fileName.replace(/\.[^.]*$/, "").trim().slice(0, 100) || "导入的存档";
+      const slot = slots.findIndex((s) => !s);
+      if (slot < 0) return;
+      const title = fileName.replace(/\.[^.]*$/, "").trim().slice(0, maxTitle) || "导入的存档";
       api
-        .putSaves(game.id, { [name]: data })
+        .putSaves(game.id, writeSlot(slots, slot, title, data))
         .then(() => queryClient.invalidateQueries({ queryKey: ["saves", game.id] }))
         .catch((err: unknown) => console.error("keep imported save", err));
     });
@@ -185,22 +184,16 @@ function LoadDialog({ game, request, onDone }: { game: Game; request: LoadReques
 
   return (
     <Panel title="继续游戏" onEscape={cancel}>
-      {saves.isPending ? (
-        <p className="py-6 text-center text-sm text-muted">读取存档…</p>
-      ) : saves.error ? (
-        <p className="py-6 text-center text-sm text-danger">{saves.error.message}</p>
-      ) : saves.list.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted">还没有存档。在大地图点「保存游戏」即可存档。</p>
-      ) : (
-        <SaveList
-          saves={saves.list}
-          onPick={(s) => {
-            request.pick(`${s.name}.json`, s.data);
-            onDone(`已读取「${s.name}」`);
-          }}
-          onDelete={(s) => void remove(s.name)}
-        />
-      )}
+      <SlotView
+        saves={saves}
+        onPick={(i) => {
+          const save = saves.slots[i];
+          if (!save) return;
+          request.pick(`${save.title}.json`, save.data);
+          onDone(`已读取「${save.title}」`);
+        }}
+        onDelete={(save) => void remove(save)}
+      />
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
       <div className="mt-5 flex items-center justify-between gap-2">
         <button type="button" onClick={importFile} className="flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline">
@@ -213,44 +206,59 @@ function LoadDialog({ game, request, onDone }: { game: Game; request: LoadReques
   );
 }
 
-type SaveItem = { name: string; data: string; updated: number };
-
-function SaveList({
+/**
+ * The slots in two columns of three, slot 1 at the top left. Without
+ * onDelete the dialog is saving, so empty slots can be picked too.
+ */
+function SlotView({
   saves,
+  selected,
   onPick,
   onDelete,
-  selected,
 }: {
-  saves: SaveItem[];
-  onPick: (save: SaveItem) => void;
-  onDelete?: (save: SaveItem) => void;
-  selected?: string;
+  saves: ReturnType<typeof useSlots>;
+  selected?: number;
+  onPick: (slot: number) => void;
+  onDelete?: (save: SlotSave) => void;
 }) {
+  if (saves.isPending) return <p className="py-6 text-center text-sm text-muted">读取存档…</p>;
+  if (saves.error) return <p className="py-6 text-center text-sm text-danger">{saves.error.message}</p>;
   return (
-    <ul className="mt-2 max-h-60 space-y-1 overflow-y-auto">
-      {saves.map((s) => (
-        <li key={s.name} className="flex items-center gap-1">
+    <ol className="mt-4 grid grid-flow-col grid-cols-2 grid-rows-3 gap-2">
+      {saves.slots.map((save, i) => (
+        <li key={i} className="relative">
           <button
             type="button"
-            onClick={() => onPick(s)}
-            className={`min-w-0 flex-1 rounded-xl px-3 py-2 text-left hover:bg-surface ${selected === s.name ? "bg-surface" : ""}`}
+            disabled={!save && !!onDelete}
+            onClick={() => onPick(i)}
+            aria-pressed={selected === undefined ? undefined : selected === i}
+            className={`h-full w-full rounded-xl border px-3 py-2 text-left hover:bg-surface disabled:hover:bg-transparent ${
+              selected === i ? "border-accent bg-surface" : ""
+            } ${save && onDelete ? "pr-9" : ""}`}
           >
-            <span className="block truncate font-semibold">{s.name}</span>
-            <span className="block truncate text-xs text-muted">{timeAgo(s.updated)}保存</span>
+            <span className="block text-xs text-muted">存档 {i + 1}</span>
+            {save ? (
+              <>
+                <span className="block truncate font-semibold">{save.title}</span>
+                <span className="block text-xs text-muted tabular-nums">{dateTime(save.updated)}</span>
+              </>
+            ) : (
+              <span className="block py-2 text-sm text-muted">无存档</span>
+            )}
           </button>
-          {onDelete && (
+          {save && onDelete && (
             <button
               type="button"
-              onClick={() => onDelete(s)}
-              aria-label={`删除存档「${s.name}」`}
-              className="grid size-9 shrink-0 place-items-center rounded-full text-muted hover:bg-surface hover:text-danger"
+              onClick={() => onDelete(save)}
+              aria-label={`删除存档「${save.title}」`}
+              className="absolute top-1 right-1 grid size-8 place-items-center rounded-full text-muted hover:bg-pill hover:text-danger"
             >
               <Trash2 className="size-4" />
             </button>
           )}
         </li>
       ))}
-    </ul>
+    </ol>
   );
 }
 
@@ -272,7 +280,7 @@ function Panel({ title, onEscape, children }: { title: string; onEscape: () => v
         e.stopPropagation();
         if (e.key === "Escape") onEscape();
       }}
-      className="w-full max-w-sm rounded-3xl bg-background p-6 text-foreground shadow-2xl outline-none"
+      className="w-full max-w-md rounded-3xl bg-background p-6 text-foreground shadow-2xl outline-none"
     >
       <h2 className="text-lg font-bold tracking-tight">{title}</h2>
       <div className="mt-4">{children}</div>

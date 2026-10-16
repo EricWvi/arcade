@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"arcade/internal/auth"
+	"arcade/internal/catalog"
 	"arcade/internal/store"
 )
 
@@ -22,6 +23,9 @@ const (
 	maxSaveBody  = 8 << 20
 	// maxSavesPerGame bounds how many saves a user keeps for one game.
 	maxSavesPerGame = 100
+	// maxFileSaves bounds it for a game that saves to files, whose saves
+	// the player keeps in six slots (frontend/src/lib/save-slots.ts).
+	maxFileSaves = 6
 )
 
 type savesBody struct {
@@ -87,9 +91,13 @@ func (s *server) putSaves(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	err := s.opts.Store.PutSaves(r.Context(), auth.User(r.Context()).ID, key, body.Saves, maxSavesPerGame)
+	limit := maxSavesPerGame
+	if s.opts.Catalog.Games[key].SavesMode() == catalog.SavesFile {
+		limit = maxFileSaves
+	}
+	err := s.opts.Store.PutSaves(r.Context(), auth.User(r.Context()).ID, key, body.Saves, limit)
 	if errors.Is(err, store.ErrTooMany) {
-		writeError(w, http.StatusConflict, fmt.Sprintf("每个游戏最多保留 %d 个存档，请先删除一些", maxSavesPerGame))
+		writeError(w, http.StatusConflict, fmt.Sprintf("每个游戏最多保留 %d 个存档，请先删除一些", limit))
 		return
 	}
 	if err != nil {

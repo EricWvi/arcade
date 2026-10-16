@@ -3,6 +3,7 @@
 // are otherwise free.
 
 import type { User } from "./auth";
+import type { ListedGame } from "./catalog";
 import { byteLength, error, fresh, isObject, noContent, parseJSON, readBody } from "./http";
 
 // Flash allowed 100 KB per SharedObject by default, so these leave plenty
@@ -12,6 +13,8 @@ const maxSaveData = 1 << 20;
 const maxSaveBatch = 64;
 const maxSaveBody = 8 << 20;
 export const maxSavesPerGame = 100;
+/** A game that saves to files keeps its saves in six slots (frontend/src/lib/save-slots.ts). */
+export const maxFileSaves = 6;
 
 /** GET /api/games/<key>/saves */
 export async function getSaves(db: D1Database, user: User, game: string): Promise<Response> {
@@ -32,7 +35,9 @@ export async function getSaves(db: D1Database, user: User, game: string): Promis
 }
 
 /** PUT /api/games/<key>/saves writes the saves named and leaves the rest. */
-export async function putSaves(request: Request, db: D1Database, user: User, game: string): Promise<Response> {
+export async function putSaves(request: Request, db: D1Database, user: User, listed: ListedGame): Promise<Response> {
+  const game = listed.id;
+  const limit = listed.saves === "file" ? maxFileSaves : maxSavesPerGame;
   const text = await readBody(request, maxSaveBody);
   if (text === null) return error(413, "存档太大");
   const body = parseJSON(text);
@@ -54,8 +59,8 @@ export async function putSaves(request: Request, db: D1Database, user: User, gam
   const names = new Set(results.map((r) => r.name));
   const before = names.size;
   for (const [name, data] of entries) data === null ? names.delete(name) : names.add(name);
-  if (names.size > maxSavesPerGame && names.size > before) {
-    return error(409, `每个游戏最多保留 ${maxSavesPerGame} 个存档，请先删除一些`);
+  if (names.size > limit && names.size > before) {
+    return error(409, `每个游戏最多保留 ${limit} 个存档，请先删除一些`);
   }
 
   const now = Math.floor(Date.now() / 1000);

@@ -1,6 +1,6 @@
 import { env, exports } from "cloudflare:workers";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { maxSavesPerGame } from "../src/saves";
+import { maxFileSaves } from "../src/saves";
 
 const origin = "https://arcade.test";
 
@@ -239,10 +239,8 @@ describe("saves", () => {
 
   it("caps how many saves a user keeps for a game", async () => {
     const cookie = await signIn(304);
-    for (let i = 0; i < maxSavesPerGame; i += 50) {
-      const batch = Object.fromEntries(Array.from({ length: 50 }, (_, j) => [`save ${i + j}`, "x"]));
-      expect((await put(cookie, batch)).status).toBe(204);
-    }
+    const full = Object.fromEntries(Array.from({ length: maxFileSaves }, (_, i) => [`save ${i}`, "x"]));
+    expect((await put(cookie, full)).status).toBe(204);
     expect((await put(cookie, { "one more": "x" })).status).toBe(409);
     // Overwriting, or replacing one with another, is still fine.
     expect((await put(cookie, { "save 0": "y" })).status).toBe(204);

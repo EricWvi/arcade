@@ -2,7 +2,9 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -247,5 +249,57 @@ func TestRecordPlayGrowsPastTheFirstReportCap(t *testing.T) {
 	s.db.QueryRow(`SELECT active_ms FROM plays`).Scan(&active)
 	if active > tenMinutes+activeSlack+1000 {
 		t.Fatalf("active %d ms, more than the time since the start", active)
+	}
+}
+
+func TestMigrationMovesFileSavesIntoSlots(t *testing.T) {
+	db, err := sql.Open("sqlite", "file:"+filepath.Join(t.TempDir(), "arcade.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	for _, m := range migrations[:3] {
+		tx, _ := db.Begin()
+		if err := m(tx); err != nil {
+			t.Fatal(err)
+		}
+		tx.Commit()
+	}
+	if _, err := db.Exec(`
+		PRAGMA user_version = 3;
+		INSERT INTO users (id, issuer, subject) VALUES (1, 'i', 'a'), (2, 'i', 'b');
+		INSERT INTO saves (user_id, game, name, data, updated_at) VALUES
+			(1, 'zmxy-1', '孙悟空', 'a', 10),
+			(1, 'zmxy-1', '孙悟空 Lv.2', 'b', 20),
+			(1, 'zmxy-2', '孙悟空', 'c', 5),
+			(2, 'zmxy-1', '唐僧', 'd', 1),
+			(1, 'hot-air-1', 'levelsopened', 'e', 1);
+	`); err != nil {
+		t.Fatal(err)
+	}
+	if err := migrate(db); err != nil {
+		t.Fatal(err)
+	}
+	rows, err := db.Query(`SELECT user_id, game, name FROM saves ORDER BY user_id, game, name`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	var got []string
+	for rows.Next() {
+		var user int
+		var game, name string
+		rows.Scan(&user, &game, &name)
+		got = append(got, fmt.Sprintf("%d %s %s", user, game, name))
+	}
+	want := []string{
+		"1 hot-air-1 levelsopened",
+		"1 zmxy-1 1/孙悟空 Lv.2",
+		"1 zmxy-1 2/孙悟空",
+		"1 zmxy-2 1/孙悟空",
+		"2 zmxy-1 1/唐僧",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("saves = %q, want %q", got, want)
 	}
 }

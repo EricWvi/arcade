@@ -177,6 +177,19 @@ export function contract(target: Target) {
       expect((await put(saves, { saves: { "save 0": "y" } })).status).toBe(204);
       expect((await put(saves, { saves: { "save 0": null, "one more": "x" } })).status).toBe(204);
     });
+
+    it("keeps at most 6 saves for a game that saves to files", async () => {
+      const { saves: before } = await (await get(path)).json<{ saves: Record<string, string> }>();
+      const clear = Object.fromEntries(Object.keys(before).map((name) => [name, null]));
+      if (Object.keys(clear).length > 0) expect((await put(path, { saves: clear })).status).toBe(204);
+      const seven = Object.fromEntries(Array.from({ length: 7 }, (_, i) => [`${i + 1}/孙悟空`, "x"]));
+      await expectError(await put(path, { saves: seven }), 409, "每个游戏最多保留 6 个存档，请先删除一些");
+      const { "7/孙悟空": _, ...six } = seven;
+      expect((await put(path, { saves: six })).status).toBe(204);
+      await expectError(await put(path, { saves: { "7/孙悟空": "x" } }), 409, "每个游戏最多保留 6 个存档，请先删除一些");
+      // Saving over a slot replaces one save with another.
+      expect((await put(path, { saves: { "1/孙悟空": null, "1/唐僧": "y" } })).status).toBe(204);
+    });
   });
 
   describe("plays", () => {

@@ -12,6 +12,16 @@ export function timeAgo(ms: number, now = Date.now()) {
   return new Date(ms).toLocaleDateString("zh-CN");
 }
 
+/** "2026-10-16 09:05:03" in local time, for a unix millisecond time. */
+export function dateTime(ms: number) {
+  const d = new Date(ms);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
+    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  );
+}
+
 /** "不到 1 分钟", "25 分钟", "3 小时 10 分钟" for a duration. */
 export function playTime(ms: number) {
   const minutes = Math.floor(ms / 60_000);

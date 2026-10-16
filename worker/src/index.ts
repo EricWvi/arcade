@@ -59,9 +59,9 @@ async function signedIn(request: Request, url: URL, env: Env, user: User): Promi
   if (m && request.method === "PUT") return putPlay(request, env.DB, user, catalog, m[1]!);
   m = /^\/api\/games\/([^/]+)\/saves$/.exec(pathname);
   if (m && (request.method === "GET" || request.method === "PUT")) {
-    const game = m[1]!;
-    if (!catalog.games.has(game)) return error(404, "游戏不存在");
-    return request.method === "GET" ? getSaves(env.DB, user, game) : putSaves(request, env.DB, user, game);
+    const game = catalog.games.get(m[1]!);
+    if (!game) return error(404, "游戏不存在");
+    return request.method === "GET" ? getSaves(env.DB, user, game.id) : putSaves(request, env.DB, user, game);
   }
   return error(404, "接口不存在");
 }
