@@ -194,6 +194,10 @@ function Player({ game, swf, muted }: { game: Game; swf: Swf; muted: boolean }) 
       autoplay: "on",
       backgroundColor: "#000000",
       letterbox: "on",
+      // Some movies, like 造梦西游 2, set stage.scaleMode to noScale, which
+      // crops a small stage and shows art past the edges of a large one.
+      scale: "showAll",
+      forceScale: true,
       unmuteOverlay: "hidden",
       splashScreen: false,
       warnOnUnsupportedContent: false,

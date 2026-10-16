@@ -13,6 +13,9 @@ export type RuffleLoadOptions = {
   autoplay?: "on" | "off" | "auto";
   backgroundColor?: string;
   letterbox?: "on" | "off" | "fullscreen";
+  scale?: "showAll" | "exactFit" | "noBorder" | "noScale";
+  /** Keeps scale even if the movie sets stage.scaleMode itself. */
+  forceScale?: boolean;
   unmuteOverlay?: "visible" | "hidden";
   splashScreen?: boolean;
   warnOnUnsupportedContent?: boolean;
